@@ -54,4 +54,15 @@ class MobileAppFlowTest extends TestCase
         // Chairperson is authorized
         $this->actingAs($chairperson)->get('/approvals')->assertStatus(200);
     }
+
+    public function test_authenticated_user_can_logout_via_route()
+    {
+        $youth = User::where('role', 'youth')->first();
+
+        $this->actingAs($youth)->post('/logout')->assertRedirect('/login');
+        $this->assertGuest();
+
+        $this->actingAs($youth)->get('/logout')->assertRedirect('/login');
+        $this->assertGuest();
+    }
 }

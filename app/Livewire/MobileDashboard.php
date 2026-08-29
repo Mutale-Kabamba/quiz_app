@@ -14,6 +14,7 @@ use App\Models\ParishEvent;
 use App\Models\ParishFormationChallenge;
 use App\Models\ParishTransfer;
 use App\Models\QuizAttempt;
+use App\Models\SaintProfile;
 use App\Models\User;
 use App\Models\UserChallengeParticipation;
 use App\Services\AdaptiveMasteryService;
@@ -21,6 +22,7 @@ use App\Services\DiocesanAnalyticsService;
 use App\Services\GamificationService;
 use App\Services\LearningIntelligenceService;
 use App\Services\LearningProgressService;
+use App\Services\LiturgicalCalendarService;
 use App\Services\MicroLearningService;
 use App\Services\ParishCommunityChallengeService;
 use App\Services\ParishDashboardService;
@@ -34,6 +36,7 @@ class MobileDashboard extends Component
     public string $rallyPin = '';
     public bool $showRallyModal = false;
     public bool $showSaintModal = false;
+    public ?SaintProfile $selectedSaint = null;
     public bool $showExplainModal = false;
     public string $explainConcept = '';
 
@@ -44,6 +47,12 @@ class MobileDashboard extends Component
         ]);
 
         return redirect()->to('/quiz?tab=compete');
+    }
+
+    public function openSaintModal(int $saintId)
+    {
+        $this->selectedSaint = SaintProfile::find($saintId);
+        $this->showSaintModal = true;
     }
 
     public function openExplainModal(string $concept)
@@ -59,6 +68,9 @@ class MobileDashboard extends Component
             return redirect()->to('/login');
         }
 
+        $liturgicalService = app(LiturgicalCalendarService::class);
+        $liturgicalContext = $liturgicalService->getCurrentContext();
+
         // =========================================================================
         // A. SUPER ADMIN EXECUTIVE OVERVIEW DATA
         // =========================================================================
@@ -71,11 +83,12 @@ class MobileDashboard extends Component
 
             return view('livewire.mobile-dashboard', [
                 'user' => $user,
+                'liturgicalContext' => $liturgicalContext,
                 'diocesanKpis' => $diocesanKpis,
                 'deaneries' => $deaneries,
                 'pendingTransfersCount' => $pendingTransfersCount,
                 'recentAudits' => $recentAudits,
-            ])->layout('components.layouts.app', ['title' => 'Diocesan Overview • Livingstone Diocese']);
+            ])->layout('components.layouts.app', ['title' => 'Diocesan Command • Livingstone Diocese']);
         }
 
         // =========================================================================
@@ -99,6 +112,7 @@ class MobileDashboard extends Component
 
             return view('livewire.mobile-dashboard', [
                 'user' => $user,
+                'liturgicalContext' => $liturgicalContext,
                 'parish' => $parish,
                 'parishKpis' => $parishKpis,
                 'formationHealth' => $formationHealth,
@@ -106,7 +120,7 @@ class MobileDashboard extends Component
                 'recentAnnouncements' => $recentAnnouncements,
                 'upcomingEvents' => $upcomingEvents,
                 'activeChallenges' => $activeChallenges,
-            ])->layout('components.layouts.app', ['title' => "Parish Overview • {$parish->name}"]);
+            ])->layout('components.layouts.app', ['title' => "Parish Leadership • {$parish->name}"]);
         }
 
         // =========================================================================
@@ -152,6 +166,9 @@ class MobileDashboard extends Component
         $unlockedAchievementIds = $user->achievements()->pluck('achievement_id');
         $nextAchievement = Achievement::whereNotIn('id', $unlockedAchievementIds)->first();
 
+        $featuredSaints = SaintProfile::take(4)->get();
+        $featuredCategories = Category::withCount(['lessons', 'questions'])->orderBy('display_order')->take(4)->get();
+
         $currentLevel = $user->level ?? 1;
         $currentXp = $user->xp ?? 0;
         $currentBaseline = $gamificationService->getCurrentLevelBaseline($currentLevel);
@@ -159,8 +176,19 @@ class MobileDashboard extends Component
         $levelXpSpan = max(1, $nextThreshold - $currentBaseline);
         $levelProgressPercentage = min(100, (int) round((($currentXp - $currentBaseline) / $levelXpSpan) * 100));
 
+        // Formation title mapping
+        $levelTitle = match($currentLevel) {
+            1 => 'Seeker of Truth',
+            2 => 'Faithful Disciple',
+            3 => 'Catechetical Scholar',
+            4 => 'Scripture Pillar',
+            5 => 'Diocesan Evangelist',
+            default => 'Youth Champion',
+        };
+
         return view('livewire.mobile-dashboard', [
             'user' => $user,
+            'liturgicalContext' => $liturgicalContext,
             'continueLesson' => $continueLesson,
             'categoryProgress' => $categoryProgress,
             'todayChallenge' => $todayChallenge,
@@ -168,6 +196,7 @@ class MobileDashboard extends Component
             'nextAchievement' => $nextAchievement,
             'currentXp' => $currentXp,
             'currentLevel' => $currentLevel,
+            'levelTitle' => $levelTitle,
             'nextThreshold' => $nextThreshold,
             'levelProgressPercentage' => $levelProgressPercentage,
             'smartRecommendations' => $smartRecommendations,
@@ -179,6 +208,8 @@ class MobileDashboard extends Component
             'activeParishChallenge' => $activeParishChallenge,
             'challengeStandings' => $challengeStandings,
             'weakAreas' => $weakAreas,
+            'featuredSaints' => $featuredSaints,
+            'featuredCategories' => $featuredCategories,
         ])->layout('components.layouts.app', ['title' => 'Catholic Formation • Livingstone Diocese']);
     }
 }

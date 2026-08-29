@@ -34,6 +34,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', Profile::class)->name('profile');
 });
 
+// Authentication & Session Termination
+Route::match(['get', 'post'], '/logout', function () {
+    auth()->logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect('/login');
+})->name('logout');
+
 // Storage fallback route for Windows environment
 Route::get('/storage/{path}', function ($path) {
     $filePath = storage_path('app/public/' . $path);
