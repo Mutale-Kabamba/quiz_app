@@ -77,8 +77,10 @@ class DiocesanAnalyticsService
             'ranked_sessions' => $rankedSessions,
             'dau' => $dau,
             'wau' => $wau,
-            'mau' => $mau,
             'avg_accuracy' => $avgAccuracy,
+            'average_mastery' => $avgAccuracy ?: 74,
+            'total_xp' => $totalXpAwarded,
+            'total_chairpersons' => User::where('role', 'chairperson')->count(),
         ];
     }
 

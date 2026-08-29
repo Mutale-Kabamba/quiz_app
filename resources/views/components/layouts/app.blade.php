@@ -99,8 +99,12 @@
                         </div>
 
                         <!-- User Initial / Avatar -->
-                        <a href="/profile" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-purple-400 transition-colors">
-                            {{ substr(auth()->user()->name, 0, 1) }}
+                        <a href="/profile" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-purple-400 transition-colors overflow-hidden">
+                            @if(auth()->user()->avatar_url)
+                                <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-full h-full object-cover">
+                            @else
+                                {{ substr(auth()->user()->name, 0, 1) }}
+                            @endif
                         </a>
                     </div>
                 </div>
@@ -171,23 +175,30 @@
                         <span class="text-[11px] tracking-tight">Ranks</span>
                     </a>
 
-                    <!-- Tab 5: Dynamic Role Tab (Chairperson Approvals or Profile) -->
-                    @if(auth()->user()->isChairperson() || auth()->user()->isSuperAdmin())
-                        <a href="/approvals" class="flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-colors {{ request()->is('approvals*') ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-normal' }}">
+                    <!-- Tab 5: Dynamic Role-Based Hub -->
+                    @if(auth()->user()->isChairperson())
+                        <a href="/parish" class="flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-colors {{ request()->is('parish*') || request()->is('approvals*') ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-normal' }}">
                             <div class="relative">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="{{ request()->is('approvals*') ? '2.2' : '1.8' }}" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="{{ (request()->is('parish*') || request()->is('approvals*')) ? '2.2' : '1.8' }}" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                 </svg>
                                 @php
                                     $pendingCount = \App\Models\User::where('role', 'youth')->where('status', 'pending')
-                                        ->when(auth()->user()->isChairperson(), fn($q) => $q->where('parish_id', auth()->user()->parish_id))
+                                        ->where('parish_id', auth()->user()->parish_id)
                                         ->count();
                                 @endphp
                                 @if($pendingCount > 0)
                                     <span class="absolute -top-1 -right-2 px-1.5 py-0.2 bg-red-600 text-white rounded-full text-[9px] font-bold">{{ $pendingCount }}</span>
                                 @endif
                             </div>
-                            <span class="text-[11px] tracking-tight">Approvals</span>
+                            <span class="text-[11px] tracking-tight">Parish</span>
+                        </a>
+                    @elseif(auth()->user()->isSuperAdmin())
+                        <a href="/diocese" class="flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-colors {{ request()->is('diocese*') ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-normal' }}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="{{ request()->is('diocese*') ? '2.2' : '1.8' }}" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-6-13h12"/>
+                            </svg>
+                            <span class="text-[11px] tracking-tight">Diocese</span>
                         </a>
                     @else
                         <a href="/profile" class="flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-colors {{ request()->is('profile*') ? 'text-purple-600 dark:text-purple-400 font-semibold' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-normal' }}">

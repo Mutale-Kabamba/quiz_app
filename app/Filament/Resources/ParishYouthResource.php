@@ -38,6 +38,12 @@ class ParishYouthResource extends Resource
     protected static ?string $navigationLabel = 'Parish Youth Directory';
     protected static ?string $modelLabel = 'Parish Youth Member';
 
+    public static function canViewAny(): bool
+    {
+        $user = Auth::user();
+        return $user && in_array($user->role, ['chairperson', 'super_admin', 'deanery_admin']);
+    }
+
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery()->where('role', 'youth');

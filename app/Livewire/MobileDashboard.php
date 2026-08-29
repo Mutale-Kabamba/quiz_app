@@ -3,17 +3,27 @@
 namespace App\Livewire;
 
 use App\Models\Achievement;
+use App\Models\AuditLog;
+use App\Models\Category;
 use App\Models\DailyChallenge;
+use App\Models\Deanery;
 use App\Models\Lesson;
+use App\Models\Parish;
+use App\Models\ParishAnnouncement;
+use App\Models\ParishEvent;
+use App\Models\ParishFormationChallenge;
+use App\Models\ParishTransfer;
 use App\Models\QuizAttempt;
 use App\Models\User;
 use App\Models\UserChallengeParticipation;
 use App\Services\AdaptiveMasteryService;
+use App\Services\DiocesanAnalyticsService;
 use App\Services\GamificationService;
 use App\Services\LearningIntelligenceService;
 use App\Services\LearningProgressService;
 use App\Services\MicroLearningService;
 use App\Services\ParishCommunityChallengeService;
+use App\Services\ParishDashboardService;
 use App\Services\RallyPreparationService;
 use App\Services\SpacedReviewService;
 use Illuminate\Support\Facades\Auth;
@@ -49,7 +59,59 @@ class MobileDashboard extends Component
             return redirect()->to('/login');
         }
 
-        // 1. Learning Progress & Recommendations
+        // =========================================================================
+        // A. SUPER ADMIN EXECUTIVE OVERVIEW DATA
+        // =========================================================================
+        if ($user->isSuperAdmin()) {
+            $analyticsService = app(DiocesanAnalyticsService::class);
+            $diocesanKpis = $analyticsService->getDiocesanKpis();
+            $deaneries = Deanery::withCount('parishes')->get();
+            $pendingTransfersCount = ParishTransfer::where('status', 'pending')->count();
+            $recentAudits = AuditLog::with('user')->latest()->take(5)->get();
+
+            return view('livewire.mobile-dashboard', [
+                'user' => $user,
+                'diocesanKpis' => $diocesanKpis,
+                'deaneries' => $deaneries,
+                'pendingTransfersCount' => $pendingTransfersCount,
+                'recentAudits' => $recentAudits,
+            ])->layout('components.layouts.app', ['title' => 'Diocesan Overview • Livingstone Diocese']);
+        }
+
+        // =========================================================================
+        // B. PARISH ADMIN (CHAIRPERSON) EXECUTIVE OVERVIEW DATA
+        // =========================================================================
+        if ($user->isChairperson()) {
+            $parish = $user->parish ?? Parish::first();
+            $parishService = app(ParishDashboardService::class);
+            $parishKpis = $parishService->getParishKpis($parish->id);
+            $formationHealth = $parishService->getFormationHealth($parish->id);
+            
+            $pendingApprovals = User::where('role', 'youth')
+                ->where('status', 'pending')
+                ->where('parish_id', $parish->id)
+                ->take(5)
+                ->get();
+
+            $recentAnnouncements = ParishAnnouncement::where('parish_id', $parish->id)->latest()->take(3)->get();
+            $upcomingEvents = ParishEvent::where('parish_id', $parish->id)->latest()->take(3)->get();
+            $activeChallenges = ParishFormationChallenge::where('parish_id', $parish->id)->where('is_active', true)->get();
+
+            return view('livewire.mobile-dashboard', [
+                'user' => $user,
+                'parish' => $parish,
+                'parishKpis' => $parishKpis,
+                'formationHealth' => $formationHealth,
+                'pendingApprovals' => $pendingApprovals,
+                'recentAnnouncements' => $recentAnnouncements,
+                'upcomingEvents' => $upcomingEvents,
+                'activeChallenges' => $activeChallenges,
+            ])->layout('components.layouts.app', ['title' => "Parish Overview • {$parish->name}"]);
+        }
+
+        // =========================================================================
+        // C. YOUTH LEARNER FORMATION DATA
+        // =========================================================================
         $progressService = app(LearningProgressService::class);
         $intelligenceService = app(LearningIntelligenceService::class);
         $gamificationService = app(GamificationService::class);
@@ -63,26 +125,19 @@ class MobileDashboard extends Component
         $categoryProgress = $progressService->getCategoryProgress($user);
         $smartRecommendations = $intelligenceService->getRecommendations($user);
 
-        // 2. Micro Learning ("Learn in 5 Minutes")
         $microLesson = $microLearningService->getTodayMicroLesson($user);
         $microLessonCompleted = $microLesson ? $microLearningService->hasUserCompleted($user, $microLesson) : false;
-
-        // 3. Spaced Reviews Due
         $spacedReviewsCount = $spacedReviewService->getDueReviewsCount($user);
 
-        // 4. Rally Preparation
         $rallyPrep = $rallyService->getActiveRally();
         $rallyReadiness = $rallyService->calculateReadiness($user, $rallyPrep);
 
-        // 5. Parish Community Challenge
         $parishChallenges = $user->parish ? $parishChallengeService->getActiveChallengesForParish($user->parish) : collect();
         $activeParishChallenge = $parishChallenges->first();
         $challengeStandings = $activeParishChallenge ? $parishChallengeService->getChallengeStandings($activeParishChallenge) : null;
 
-        // 6. Weak Areas Analysis
         $weakAreas = $adaptiveMasteryService->getWeakTopics($user, 2);
 
-        // 7. Daily Challenge
         $todayChallenge = DailyChallenge::where('challenge_date', now()->toDateString())
             ->where('is_active', true)
             ->first();
@@ -94,38 +149,15 @@ class MobileDashboard extends Component
                 ->exists();
         }
 
-        // 8. Next Milestone Achievement
         $unlockedAchievementIds = $user->achievements()->pluck('achievement_id');
         $nextAchievement = Achievement::whereNotIn('id', $unlockedAchievementIds)->first();
 
-        // 9. XP and Level Progression
         $currentLevel = $user->level ?? 1;
         $currentXp = $user->xp ?? 0;
         $currentBaseline = $gamificationService->getCurrentLevelBaseline($currentLevel);
         $nextThreshold = $gamificationService->getNextLevelThreshold($currentLevel);
         $levelXpSpan = max(1, $nextThreshold - $currentBaseline);
         $levelProgressPercentage = min(100, (int) round((($currentXp - $currentBaseline) / $levelXpSpan) * 100));
-
-        // 10. Chairperson Stats
-        $chairpersonStats = null;
-        if ($user->isChairperson() || $user->isSuperAdmin()) {
-            $chairpersonStats = [
-                'pending_approvals' => User::where('role', 'youth')
-                    ->where('status', 'pending')
-                    ->when($user->isChairperson(), fn($q) => $q->where('parish_id', $user->parish_id))
-                    ->count(),
-                'total_parish_youth' => User::where('role', 'youth')
-                    ->when($user->isChairperson(), fn($q) => $q->where('parish_id', $user->parish_id))
-                    ->count(),
-                'active_this_week' => QuizAttempt::whereHas('user', function ($q) use ($user) {
-                        if ($user->isChairperson()) {
-                            $q->where('parish_id', $user->parish_id);
-                        }
-                    })
-                    ->where('completed_at', '>=', now()->subDays(7))
-                    ->count(),
-            ];
-        }
 
         return view('livewire.mobile-dashboard', [
             'user' => $user,
@@ -147,7 +179,6 @@ class MobileDashboard extends Component
             'activeParishChallenge' => $activeParishChallenge,
             'challengeStandings' => $challengeStandings,
             'weakAreas' => $weakAreas,
-            'chairpersonStats' => $chairpersonStats,
         ])->layout('components.layouts.app', ['title' => 'Catholic Formation • Livingstone Diocese']);
     }
 }

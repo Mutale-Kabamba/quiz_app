@@ -8,8 +8,10 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements FilamentUser
@@ -32,6 +34,12 @@ class User extends Authenticatable implements FilamentUser
         'approved_by',
         'approved_at',
         'rejection_reason',
+        'avatar_path',
+        'dob',
+        'gender',
+        'preferences',
+        'last_password_changed_at',
+        'deactivated_at',
     ];
 
     protected $hidden = [
@@ -45,11 +53,50 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'approved_at' => 'datetime',
             'last_activity_date' => 'date',
+            'dob' => 'date',
+            'last_password_changed_at' => 'datetime',
+            'deactivated_at' => 'datetime',
+            'preferences' => 'array',
             'xp' => 'integer',
             'level' => 'integer',
             'current_streak' => 'integer',
             'longest_streak' => 'integer',
         ];
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if ($this->avatar_path && Storage::disk('public')->exists($this->avatar_path)) {
+            return Storage::disk('public')->url($this->avatar_path);
+        }
+
+        return null;
+    }
+
+    public function getInitialsAttribute(): string
+    {
+        $words = explode(' ', trim($this->name));
+        $initials = '';
+        foreach (array_slice($words, 0, 2) as $w) {
+            $initials .= strtoupper(substr($w, 0, 1));
+        }
+
+        return $initials ?: 'Y';
+    }
+
+    public function getProfileCompletionPercentageAttribute(): int
+    {
+        $fields = [
+            'name' => !empty($this->name),
+            'email' => !empty($this->email),
+            'phone' => !empty($this->phone),
+            'parish' => !empty($this->parish_id),
+            'avatar' => !empty($this->avatar_path),
+            'dob' => !empty($this->dob),
+        ];
+
+        $completed = count(array_filter($fields));
+        return (int) round(($completed / count($fields)) * 100);
     }
 
     public function isSuperAdmin(): bool
@@ -70,6 +117,11 @@ class User extends Authenticatable implements FilamentUser
     public function isApproved(): bool
     {
         return $this->status === 'approved';
+    }
+
+    public function isDeactivated(): bool
+    {
+        return !is_null($this->deactivated_at);
     }
 
     public function canAccessPanel(Panel $panel): bool
@@ -115,5 +167,15 @@ class User extends Authenticatable implements FilamentUser
     public function achievements(): HasMany
     {
         return $this->hasMany(UserAchievement::class);
+    }
+
+    public function parishTransfers(): HasMany
+    {
+        return $this->hasMany(ParishTransfer::class);
+    }
+
+    public function latestPendingTransfer(): HasOne
+    {
+        return $this->hasOne(ParishTransfer::class)->where('status', 'pending')->latestOfMany();
     }
 }

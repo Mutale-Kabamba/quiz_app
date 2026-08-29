@@ -27,10 +27,17 @@ class Login extends Component
         if (Auth::attempt($credentials, $this->remember)) {
             session()->regenerate();
 
-            // Set Sanctum Token in session for offline sync bridge
             $user = Auth::user();
             $token = $user->createToken('nativephp_mobile_token')->plainTextToken;
             session(['auth_token' => $token]);
+
+            if ($user->isSuperAdmin()) {
+                return redirect()->intended('/diocese');
+            }
+
+            if ($user->isChairperson()) {
+                return redirect()->intended('/parish');
+            }
 
             return redirect()->intended('/');
         }

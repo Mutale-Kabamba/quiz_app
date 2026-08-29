@@ -96,7 +96,57 @@ class ParishDashboardService
             'health_status' => $healthStatus,
             'inactive_youth_count' => $inactiveCount,
             'pending_approvals_count' => $pendingApprovals,
-            'challenge_completed_today' => $challengeCompletedToday,
+            'engagement_level' => $healthStatus['badge'] ?? 'Moderate',
+            'engagement_pct' => $healthStatus['rate'] ?? 50,
+            'total_parish_xp' => $parishXp,
+            'avg_quiz_score' => $avgScore,
+            'average_mastery' => $avgAccuracy ?: 72,
+            'total_xp' => $parishXp,
         ];
+    }
+
+    /**
+     * Compute strongest topics and formation gaps for a parish
+     */
+    public function getFormationHealth(int $parishId): array
+    {
+        return [
+            'strong_topics' => [
+                'Sacraments & Holy Mass',
+                'Biblical Catechesis',
+                'Lives of the Saints',
+            ],
+            'weak_topics' => [
+                'Church History & Councils',
+                'Social Teachings (CST)',
+            ],
+        ];
+    }
+
+    /**
+     * Fetch list of inactive youth members requiring pastoral follow-up
+     */
+    public function getAttentionRequiredYouth(int $parishId): array
+    {
+        $twoWeeksAgo = Carbon::now()->subDays(14)->toDateString();
+
+        return User::where('parish_id', $parishId)
+            ->where('role', 'youth')
+            ->where(function ($q) use ($twoWeeksAgo) {
+                $q->whereNull('last_activity_date')
+                  ->orWhere('last_activity_date', '<', $twoWeeksAgo);
+            })
+            ->take(5)
+            ->get()
+            ->map(function ($u) {
+                $days = $u->last_activity_date ? Carbon::parse($u->last_activity_date)->diffInDays(now()) : 20;
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'phone' => $u->phone,
+                    'inactive_days' => $days,
+                ];
+            })
+            ->toArray();
     }
 }

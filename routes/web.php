@@ -28,6 +28,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/quiz/play/{categoryId?}', QuizRunner::class)->name('quiz.runner');
     Route::get('/leaderboard', LeaderboardView::class)->name('leaderboard');
     Route::get('/study/{selectedCategoryId?}', StudyHub::class)->name('study.hub');
-    Route::get('/approvals', ChairpersonApproval::class)->name('chairperson.approvals');
+    Route::get('/approvals', ChairpersonApproval::class)->middleware('parish_admin')->name('chairperson.approvals');
+    Route::get('/parish', \App\Livewire\ParishAdminDashboard::class)->middleware('parish_admin')->name('parish.dashboard');
+    Route::get('/diocese', \App\Livewire\DioceseDashboard::class)->middleware('super_admin')->name('diocese.dashboard');
     Route::get('/profile', Profile::class)->name('profile');
 });

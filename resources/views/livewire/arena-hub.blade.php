@@ -1,222 +1,323 @@
 <div class="space-y-5 pb-6">
 
-    <!-- ARENA HEADER -->
-    <div class="pt-1">
-        <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Quiz &amp; Competition Arena</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Practice self-paced questions or compete for your Parish</p>
-    </div>
-
-    <!-- 2-OPTION SEGMENTED SWITCHER: PRACTICE vs COMPETE -->
-    <div class="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-semibold">
-        <button 
-            type="button"
-            wire:click="setTab('practice')"
-            class="py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 {{ $activeTab === 'practice' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' }}">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-            </svg>
-            <span>Practice</span>
-        </button>
-
-        <button 
-            type="button"
-            wire:click="setTab('compete')"
-            class="py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 {{ $activeTab === 'compete' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' }}">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span>Compete</span>
-        </button>
-    </div>
+    @if($successMessage)
+        <div class="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-200 font-semibold flex items-center justify-between animate-fade-in">
+            <span>{{ $successMessage }}</span>
+            <button wire:click="$set('successMessage', null)" class="text-emerald-500 hover:text-emerald-700">&times;</button>
+        </div>
+    @endif
 
     <!-- ========================================================================= -->
-    <!-- OPTION 1: PRACTICE MODE                                                   -->
+    <!-- CASE 1: SUPER ADMIN QUESTION BANK & COMPETITIONS HUB                      -->
     <!-- ========================================================================= -->
-    @if($activeTab === 'practice')
+    @if($user->isSuperAdmin())
         <div class="space-y-4">
-            
-            <!-- DIFFICULTY TIER SELECTOR -->
-            <div class="p-3 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
-                <span class="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider block">Difficulty Level</span>
-                <div class="grid grid-cols-3 gap-1.5 text-xs font-medium">
-                    <button 
-                        type="button"
-                        wire:click="setLevel(1)"
-                        class="py-1.5 rounded-lg transition-colors {{ $selectedLevel === 1 ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 font-semibold' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400' }}">
-                        Level 1 (Junior)
-                    </button>
-                    <button 
-                        type="button"
-                        wire:click="setLevel(2)"
-                        class="py-1.5 rounded-lg transition-colors {{ $selectedLevel === 2 ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 font-semibold' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400' }}">
-                        Level 2 (Youth)
-                    </button>
-                    <button 
-                        type="button"
-                        wire:click="setLevel(3)"
-                        class="py-1.5 rounded-lg transition-colors {{ $selectedLevel === 3 ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 font-semibold' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400' }}">
-                        Level 3 (Advanced)
-                    </button>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Question Bank &amp; Rallies</h2>
+                    <p class="text-xs text-slate-500">Universal Question Repository &bull; Diocesan Competitions</p>
                 </div>
+                <button 
+                    type="button" 
+                    wire:click="$set('showDiocesanCompModal', true)"
+                    class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold">
+                    + Schedule Rally
+                </button>
             </div>
 
-            <!-- DAILY PRACTICE CHALLENGE -->
-            @if($todayChallenge)
-                <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-1.5">
-                                <h4 class="text-xs font-bold text-slate-900 dark:text-white">Daily Formation Challenge</h4>
-                                <span class="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.2 rounded">+50 XP</span>
-                            </div>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">5 questions &bull; Streak active</p>
-                        </div>
+            <!-- TABS SWITCHER -->
+            <div class="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-semibold">
+                <button 
+                    type="button"
+                    wire:click="setTab('bank')"
+                    class="py-2 rounded-lg transition-colors {{ $activeTab === 'bank' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900' }}">
+                    Question Bank
+                </button>
+                <button 
+                    type="button"
+                    wire:click="setTab('rallies')"
+                    class="py-2 rounded-lg transition-colors {{ $activeTab === 'rallies' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900' }}">
+                    Diocesan Competitions
+                </button>
+            </div>
+
+            <!-- TAB 1: QUESTION BANK -->
+            @if($activeTab === 'bank')
+                <div class="space-y-3">
+                    <div class="flex gap-2">
+                        <input 
+                            type="text" 
+                            wire:model.live.debounce.300ms="searchQuestion" 
+                            placeholder="Search question bank..." 
+                            class="w-full px-3 py-2 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white">
+                        <select 
+                            wire:model.live="selectedCategoryFilter"
+                            class="px-2.5 py-2 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white">
+                            <option value="">All Tracks</option>
+                            @foreach($categories as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
-                    <a href="/quiz/play?mode=practice&challenge=today" class="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-semibold text-xs transition-colors">
-                        {{ $challengeCompleted ? 'Review' : 'Start' }}
-                    </a>
+                    <div class="space-y-2">
+                        @foreach($questions as $q)
+                            <div class="p-3 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">{{ $q->category?->name ?? 'Doctrine' }} &bull; Level {{ $q->level }}</span>
+                                    <button 
+                                        type="button" 
+                                        wire:click="toggleQuestionStatus('{{ $q->id }}')" 
+                                        class="px-2 py-0.5 rounded text-[10px] font-bold {{ $q->is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-slate-100 text-slate-600' }}">
+                                        {{ $q->is_active ? 'Active' : 'Inactive' }}
+                                    </button>
+                                </div>
+                                <h4 class="font-bold text-slate-900 dark:text-white">{{ $q->question_text }}</h4>
+                                <div class="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg text-[11px] text-slate-600 dark:text-slate-300 space-y-0.5">
+                                    <div><strong>Correct Key:</strong> Option {{ $q->correct_option_key }}</div>
+                                    <div class="text-[10px] text-slate-400 italic">{{ $q->explanation }}</div>
+                                    @if($q->reference_citation)
+                                        <div class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">Citation: {{ $q->reference_citation }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             @endif
 
-            <!-- AVAILABLE PRACTICE QUIZZES BY CATEGORY -->
-            <div class="space-y-2.5">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                        Available Practice Quizzes
-                    </h3>
-                    <span class="text-[11px] text-slate-400 font-medium">{{ $categories->count() }} Topics</span>
+            <!-- TAB 2: DIOCESAN RALLIES -->
+            @if($activeTab === 'rallies')
+                <div class="space-y-2">
+                    @foreach($diocesanCompetitions as $comp)
+                        <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 text-xs">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-bold text-slate-900 dark:text-white text-sm">{{ $comp->title }}</h4>
+                                <span class="px-2 py-0.5 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 rounded font-bold text-[10px] uppercase">
+                                    {{ $comp->competition_type }}
+                                </span>
+                            </div>
+                            <p class="text-[11px] text-slate-500">{{ $comp->description }}</p>
+                            <div class="grid grid-cols-2 gap-1 text-[11px] pt-1 border-t border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400">
+                                <span>Rally PIN: <strong class="text-purple-600 font-bold">{{ $comp->rally_pin }}</strong></span>
+                                <span>Time Limit: {{ $comp->time_limit_seconds }}s</span>
+                                <span>Start: {{ $comp->start_time?->format('M d, Y') }}</span>
+                                <span>Status: <strong class="text-emerald-600">{{ ucfirst($comp->status) }}</strong></span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        <!-- CREATE DIOCESAN COMPETITION MODAL -->
+        @if($showDiocesanCompModal)
+            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-5 max-w-sm w-full space-y-3 shadow-xl">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <h3 class="text-xs font-bold text-slate-900 dark:text-white">Schedule Diocesan Rally</h3>
+                        <button wire:click="$set('showDiocesanCompModal', false)" class="text-slate-400 hover:text-slate-600">&times;</button>
+                    </div>
+
+                    <form wire:submit.prevent="createDiocesanCompetition" class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Competition Title</label>
+                            <input type="text" wire:model="newCompTitle" placeholder="e.g. 2026 Livingstone Diocesan Bible Rally" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white">
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                            <textarea wire:model="newCompDescription" rows="2" placeholder="Rules & guidelines..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Start Date</label>
+                                <input type="datetime-local" wire:model="newCompStartTime" class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">End Date</label>
+                                <input type="datetime-local" wire:model="newCompEndTime" class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white">
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                            <button type="button" wire:click="$set('showDiocesanCompModal', false)" class="w-1/2 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold">
+                                Cancel
+                            </button>
+                            <button type="submit" class="w-1/2 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold">
+                                Launch Rally
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
+
+    <!-- ========================================================================= -->
+    <!-- CASE 2: PARISH ADMIN (CHAIRPERSON) PARISH QUIZ MANAGEMENT                 -->
+    <!-- ========================================================================= -->
+    @elseif($user->isChairperson())
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Parish Quizzes &amp; Rallies</h2>
+                    <p class="text-xs text-slate-500">{{ $parish->name }} &bull; Live Battles &amp; Competitions</p>
+                </div>
+                <button 
+                    type="button" 
+                    wire:click="$set('showParishQuizModal', true)"
+                    class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold">
+                    + Host Parish Quiz
+                </button>
+            </div>
+
+            <!-- PARISH QUIZZES LIST -->
+            <div class="space-y-2">
+                @forelse($parishCompetitions as $pq)
+                    <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 text-xs">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-bold text-slate-900 dark:text-white text-sm">{{ $pq->title }}</h4>
+                            <span class="px-2 py-0.5 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 rounded font-bold text-[10px]">
+                                PIN: {{ $pq->rally_pin }}
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">{{ $pq->description }}</p>
+                        <div class="grid grid-cols-2 gap-1 text-[11px] pt-1 border-t border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400">
+                            <span>Track: {{ $pq->category?->name ?? 'General' }}</span>
+                            <span>Time: {{ $pq->time_limit_seconds }}s</span>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-xs text-slate-400 py-6 text-center">No active parish quiz battles. Host one for your youth!</p>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- HOST PARISH QUIZ MODAL -->
+        @if($showParishQuizModal)
+            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-5 max-w-sm w-full space-y-3 shadow-xl">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <h3 class="text-xs font-bold text-slate-900 dark:text-white">Host Parish Live Quiz</h3>
+                        <button wire:click="$set('showParishQuizModal', false)" class="text-slate-400 hover:text-slate-600">&times;</button>
+                    </div>
+
+                    <form wire:submit.prevent="createParishQuiz" class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Quiz Title</label>
+                            <input type="text" wire:model="newParishQuizTitle" placeholder="e.g. Parish Confirmation Quiz Battle" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white">
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                            <textarea wire:model="newParishQuizDescription" rows="2" placeholder="Instructions..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Curriculum Track</label>
+                            <select wire:model="newParishQuizCategoryId" class="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white">
+                                <option value="">All Categories</option>
+                                @foreach($categories as $c)
+                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                            <button type="button" wire:click="$set('showParishQuizModal', false)" class="w-1/2 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold">
+                                Cancel
+                            </button>
+                            <button type="submit" class="w-1/2 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold">
+                                Host Quiz
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
+
+    <!-- ========================================================================= -->
+    <!-- CASE 3: YOUTH PRACTICE & COMPETE ARENA                                    -->
+    <!-- ========================================================================= -->
+    @else
+        <!-- ARENA HEADER -->
+        <div class="pt-1">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Quiz &amp; Competition Arena</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Practice self-paced questions or compete for your Parish</p>
+        </div>
+
+        <!-- 2-OPTION SEGMENTED SWITCHER: PRACTICE vs COMPETE -->
+        <div class="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-semibold">
+            <button 
+                type="button"
+                wire:click="setTab('practice')"
+                class="py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 {{ $activeTab === 'practice' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900' }}">
+                Practice
+            </button>
+            <button 
+                type="button"
+                wire:click="setTab('compete')"
+                class="py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 {{ $activeTab === 'compete' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900' }}">
+                Compete
+            </button>
+        </div>
+
+        <!-- PRACTICE MODE -->
+        @if($activeTab === 'practice')
+            <div class="space-y-4">
+                <!-- DIFFICULTY TIER SELECTOR -->
+                <div class="p-3 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+                    <span class="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider block">Difficulty Level</span>
+                    <div class="grid grid-cols-3 gap-1.5 text-xs font-medium">
+                        <button type="button" wire:click="setLevel(1)" class="py-1.5 rounded-lg {{ $selectedLevel === 1 ? 'bg-purple-50 text-purple-700 border border-purple-300 font-semibold' : 'bg-slate-50 text-slate-600' }}">Level 1</button>
+                        <button type="button" wire:click="setLevel(2)" class="py-1.5 rounded-lg {{ $selectedLevel === 2 ? 'bg-purple-50 text-purple-700 border border-purple-300 font-semibold' : 'bg-slate-50 text-slate-600' }}">Level 2</button>
+                        <button type="button" wire:click="setLevel(3)" class="py-1.5 rounded-lg {{ $selectedLevel === 3 ? 'bg-purple-50 text-purple-700 border border-purple-300 font-semibold' : 'bg-slate-50 text-slate-600' }}">Level 3</button>
+                    </div>
                 </div>
 
+                <!-- AVAILABLE PRACTICE QUIZZES -->
                 <div class="space-y-2">
-                    @foreach($categories as $category)
-                        <div class="p-3.5 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors flex items-center justify-between group">
-                            <div class="flex-1 pr-3">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-[10px] font-bold uppercase text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-2 py-0.5 rounded">
-                                        {{ $category->name }}
-                                    </span>
-                                    <span class="text-[11px] text-slate-400">&bull; {{ $category->questions_count }} Questions</span>
-                                </div>
-                                <h4 class="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                                    {{ $category->description ?? 'Catholic Doctrine, Scripture and Tradition' }}
-                                </h4>
+                    <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Available Practice Quizzes</h3>
+                    @foreach($categories as $cat)
+                        <div class="p-3.5 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs">
+                            <div>
+                                <h4 class="font-bold text-slate-900 dark:text-white">{{ $cat->name }}</h4>
+                                <span class="text-[11px] text-slate-400">{{ $cat->questions_count }} Questions Available</span>
                             </div>
-
-                            <a href="/quiz/play/{{ $category->id }}?mode=practice&level={{ $selectedLevel }}" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-purple-600 group-hover:text-white text-slate-700 dark:text-slate-300 font-semibold text-xs flex-shrink-0 transition-colors">
+                            <a href="/quiz/play/{{ $cat->id }}?level={{ $selectedLevel }}&mode=practice" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-xs">
                                 Practice &rarr;
                             </a>
                         </div>
                     @endforeach
                 </div>
             </div>
-        </div>
+        @endif
 
-    <!-- ========================================================================= -->
-    <!-- OPTION 2: COMPETE MODE                                                    -->
-    <!-- ========================================================================= -->
-    @else
-        <div class="space-y-4">
-
-            <!-- 1. LIVE DIOCESAN RANKED ARENA (Clean Flat Card) -->
-            <div class="p-4 rounded-xl bg-white dark:bg-[#121826] border-2 border-purple-500/40 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300">
-                        Diocesan Ranked Season
-                    </span>
-                    <span class="text-[11px] text-purple-600 dark:text-purple-400 font-semibold flex items-center gap-1">
-                        Active Season
-                    </span>
+        <!-- COMPETE MODE -->
+        @if($activeTab === 'compete')
+            <div class="space-y-4">
+                <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">Livingstone Diocesan Ranked Arena</h3>
+                    <p class="text-xs text-slate-500">Compete in high-stakes timed quizzes to boost your Parish standings.</p>
                 </div>
 
-                <div>
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Livingstone Diocesan Ranked Arena</h3>
-                    <p class="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                        Timed 10-question challenge. Your score contributes directly to your Parish, Deanery, and Diocesan rankings!
-                    </p>
-                </div>
-
-                <div class="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 text-xs">
-                    <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                        <span>15s per question</span> &bull; <span>Streak multipliers</span>
+                <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl space-y-3">
+                    <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Live Youth Rally Lobby</h3>
+                    <div class="flex gap-2">
+                        <input type="text" wire:model="rallyPin" placeholder="Enter 6-digit PIN..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono">
+                        <button type="button" wire:click="joinRally" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-xs whitespace-nowrap">
+                            Join Rally
+                        </button>
                     </div>
+                </div>
 
-                    <a href="/quiz/play?mode=ranked&level=2" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-xs transition-colors touch-press">
-                        Enter Competition &rarr;
-                    </a>
+                <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+                    <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Upcoming Deanery Rallies</h3>
+                    <p class="text-xs text-slate-500">Check with your parish chairperson for upcoming scheduled rally PINs.</p>
                 </div>
             </div>
-
-            <!-- 2. PARISH LIVE RALLY MULTIPLAYER PIN -->
-            <div class="p-4 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-3">
-                <div class="flex items-center gap-2">
-                    <div class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h4 class="text-xs font-bold text-slate-900 dark:text-white">Live Youth Rally Lobby</h4>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400">Join a live rally competition hosted by your Parish</p>
-                    </div>
-                </div>
-
-                <form wire:submit.prevent="joinRally" class="flex items-center gap-2 pt-1">
-                    <input 
-                        type="text" 
-                        wire:model="rallyPin" 
-                        maxlength="6"
-                        placeholder="Enter 6-Digit PIN"
-                        class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono text-center tracking-widest placeholder-slate-400 focus:outline-none focus:border-purple-500">
-
-                    <button 
-                        type="submit" 
-                        class="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-semibold text-xs rounded-lg transition-colors">
-                        Join Rally
-                    </button>
-                </form>
-                @error('rallyPin') <span class="text-[10px] text-red-500 font-medium block">{{ $message }}</span> @enderror
-            </div>
-
-            <!-- 3. UPCOMING DEANERY RALLIES SCHEDULE -->
-            <div class="space-y-2.5">
-                <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Upcoming Deanery Rallies
-                </h3>
-
-                <div class="space-y-2">
-                    <div class="p-3 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                        <div>
-                            <span class="text-[9px] font-bold uppercase text-purple-600 dark:text-purple-400 block">Livingstone Deanery</span>
-                            <h4 class="text-xs font-bold text-slate-900 dark:text-white">St. Theresa Cathedral Youth Rally</h4>
-                            <span class="text-[11px] text-slate-400">Saturday, 14:00 CAT</span>
-                        </div>
-                        <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-semibold">Upcoming</span>
-                    </div>
-
-                    <div class="p-3 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                        <div>
-                            <span class="text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400 block">Sesheke Deanery</span>
-                            <h4 class="text-xs font-bold text-slate-900 dark:text-white">Inter-Parish Catechism Championship</h4>
-                            <span class="text-[11px] text-slate-400">Registration Open</span>
-                        </div>
-                        <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-semibold">Upcoming</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. LEADERBOARD LINK -->
-            <div class="pt-1">
-                <a href="/leaderboard" class="block w-full py-2.5 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 text-center text-xs font-semibold text-purple-600 dark:text-purple-400 hover:border-purple-300 dark:hover:border-purple-700 transition-colors">
-                    View Current Diocesan Rankings &rarr;
-                </a>
-            </div>
-        </div>
+        @endif
     @endif
+
 </div>

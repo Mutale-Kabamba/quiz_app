@@ -22,7 +22,13 @@ class ChairpersonApproval extends Component
 
     public function approve(string $userId)
     {
+        $currentUser = Auth::user();
         $user = User::findOrFail($userId);
+
+        if ($currentUser->isChairperson() && $user->parish_id !== $currentUser->parish_id) {
+            abort(403, 'Unauthorized. You may only approve youth belonging to your assigned parish.');
+        }
+
         $user->update([
             'status' => 'approved',
             'approved_by' => Auth::id(),
@@ -35,6 +41,13 @@ class ChairpersonApproval extends Component
 
     public function openRejectModal(string $userId)
     {
+        $currentUser = Auth::user();
+        $user = User::findOrFail($userId);
+
+        if ($currentUser->isChairperson() && $user->parish_id !== $currentUser->parish_id) {
+            abort(403, 'Unauthorized. You may only review youth belonging to your assigned parish.');
+        }
+
         $this->selectedUserId = $userId;
         $this->rejectionReason = '';
         $this->showRejectModal = true;
@@ -47,7 +60,13 @@ class ChairpersonApproval extends Component
         ]);
 
         if ($this->selectedUserId) {
+            $currentUser = Auth::user();
             $user = User::findOrFail($this->selectedUserId);
+
+            if ($currentUser->isChairperson() && $user->parish_id !== $currentUser->parish_id) {
+                abort(403, 'Unauthorized. You may only review youth belonging to your assigned parish.');
+            }
+
             $user->update([
                 'status' => 'rejected',
                 'approved_by' => Auth::id(),

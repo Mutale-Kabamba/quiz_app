@@ -8,7 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Parish extends Model
 {
-    protected $fillable = ['deanery_id', 'name', 'location'];
+    protected $fillable = [
+        'deanery_id',
+        'name',
+        'code',
+        'location',
+        'contact_email',
+        'contact_phone',
+        'is_active',
+    ];
 
     public function deanery(): BelongsTo
     {
