@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5B21B6" />
+      <stop offset="100%" stop-color="#3B0764" />
+    </linearGradient>
+    <linearGradient id="crossGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F5F3FF" />
+    </linearGradient>
+    <filter id="subtleGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Background Base (Rounded Rect) -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Subtle Liturgical Accent Ring -->
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="none" stroke="#7C3AED" stroke-width="4" opacity="0.4" />
+
+  <!-- Central Catholic Cross Symbol -->
+  <g filter="url(#subtleGlow)" fill="url(#crossGrad)">
+    <!-- Vertical Beam -->
+    <rect x="232" y="96" width="48" height="320" rx="10" />
+    <!-- Horizontal Beam -->
+    <rect x="136" y="184" width="240" height="48" rx="10" />
+    <!-- Center Chi-Rho / Faith Circle Accent -->
+    <circle cx="256" cy="208" r="44" fill="none" stroke="#D97706" stroke-width="8" />
+  </g>
+
+  <!-- Bottom Diocesan Subtitle -->
+  <text x="256" y="456" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="28" font-weight="700" fill="#DDD6FE" letter-spacing="3">LIVINGSTONE</text>
+</svg>

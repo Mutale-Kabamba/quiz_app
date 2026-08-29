@@ -2,10 +2,19 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full antialiased">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
     <meta name="theme-color" content="#5B21B6">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Catholic Youth">
+    <meta name="application-name" content="Catholic Youth">
+    
+    <!-- PWA Web App Manifest & Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
     <title>{{ $title ?? 'Livingstone Diocese Catholic Youth Ministry' }}</title>
 
     <!-- Google Fonts: Plus Jakarta Sans (Modern UI) & Newsreader (Editorial Catholic Typography) -->
@@ -486,6 +495,112 @@
             </nav>
         @endauth
     </div>
+
+    <!-- PWA OFFLINE CONNECTIVITY ALERT BANNER -->
+    <div x-data="{ isOffline: !navigator.onLine, reconnected: false }"
+         x-init="
+             window.addEventListener('online', () => { isOffline = false; reconnected = true; setTimeout(() => reconnected = false, 3500); });
+             window.addEventListener('offline', () => { isOffline = true; reconnected = false; });
+         "
+         x-cloak>
+        <div x-show="isOffline" 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="fixed top-3 left-4 right-4 max-w-sm mx-auto z-50 px-3.5 py-2 rounded-xl bg-amber-600 text-white text-[11px] font-bold flex items-center justify-between shadow-xl border border-amber-500">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                <span>Offline Mode &bull; Cached Formation Available</span>
+            </div>
+            <a href="/offline" class="underline text-[10px] uppercase tracking-wider ml-2">Details</a>
+        </div>
+        <div x-show="reconnected" 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             class="fixed top-3 left-4 right-4 max-w-sm mx-auto z-50 px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-xl border border-emerald-500">
+            <span>✓ Online &bull; Connection Restored</span>
+        </div>
+    </div>
+
+    <!-- PWA INSTALL PROMPT COMPONENT -->
+    <div x-data="{ 
+             deferredPrompt: null, 
+             showInstall: false,
+             dismissed: localStorage.getItem('pwa_prompt_dismissed') === 'true',
+             init() {
+                 window.addEventListener('beforeinstallprompt', (e) => {
+                     e.preventDefault();
+                     this.deferredPrompt = e;
+                     if (!this.dismissed && !window.matchMedia('(display-mode: standalone)').matches) {
+                         setTimeout(() => { this.showInstall = true; }, 2500);
+                     }
+                 });
+                 window.addEventListener('appinstalled', () => {
+                     this.showInstall = false;
+                     this.deferredPrompt = null;
+                 });
+             },
+             install() {
+                 if (this.deferredPrompt) {
+                     this.deferredPrompt.prompt();
+                     this.deferredPrompt.userChoice.then((choiceResult) => {
+                         this.showInstall = false;
+                         this.deferredPrompt = null;
+                     });
+                 }
+             },
+             dismiss() {
+                 this.showInstall = false;
+                 localStorage.setItem('pwa_prompt_dismissed', 'true');
+             }
+         }"
+         x-init="init()"
+         x-cloak>
+        <div x-show="showInstall" 
+             x-transition:enter="transition ease-out duration-300 transform"
+             x-transition:enter-start="opacity-0 translate-y-6"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200 transform"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 translate-y-6"
+             class="fixed bottom-20 left-4 right-4 max-w-md mx-auto z-40 bg-white dark:bg-[#121826] border border-purple-200 dark:border-purple-800/80 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-6-13h12"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate">Install Catholic Youth App</h4>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Faster loading &amp; offline catechism access</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+                <button @click="install()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors touch-press shadow-sm">
+                    Install
+                </button>
+                <button @click="dismiss()" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg text-xs" title="Dismiss">
+                    &times;
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA SERVICE WORKER REGISTRATION SCRIPT -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(reg) {
+                        console.log('PWA ServiceWorker registered with scope:', reg.scope);
+                    })
+                    .catch(function(err) {
+                        console.warn('PWA ServiceWorker registration notice:', err);
+                    });
+            });
+        }
+    </script>
 
     @livewireScripts
 </body>

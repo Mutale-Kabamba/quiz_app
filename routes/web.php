@@ -13,6 +13,9 @@ use App\Livewire\QuizRunner;
 use App\Livewire\StudyHub;
 use Illuminate\Support\Facades\Route;
 
+// Offline Fallback Route for PWA
+Route::view('/offline', 'offline')->name('offline');
+
 // Guest Authentication Routes (Entry Screen)
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
