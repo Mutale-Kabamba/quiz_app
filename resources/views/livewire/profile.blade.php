@@ -30,20 +30,20 @@
     <!-- ========================================================================= -->
     <div class="p-5 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 text-center space-y-4">
         
-        <!-- AVATAR CONTAINER WITH CAMERA ACTION -->
+        <!-- AVATAR CONTAINER WITH CAMERA ACTION (ROUND) -->
         <div class="relative inline-block mx-auto">
-            @if($user->avatar_url)
-                <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="w-20 h-20 rounded-full object-cover border-2 border-purple-300 dark:border-purple-700 shadow-sm mx-auto">
-            @else
-                <div class="w-20 h-20 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-2xl mx-auto border-2 border-purple-200 dark:border-purple-800">
-                    {{ $user->initials }}
-                </div>
-            @endif
+            <div class="w-20 h-20 rounded-full overflow-hidden border-2 border-purple-300 dark:border-purple-700 shadow-sm mx-auto aspect-square flex items-center justify-center bg-purple-50 dark:bg-purple-950/40">
+                @if($user->avatar_url)
+                    <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="w-full h-full rounded-full object-cover aspect-square">
+                @else
+                    <span class="text-purple-700 dark:text-purple-300 font-bold text-2xl">{{ $user->initials }}</span>
+                @endif
+            </div>
 
             <button 
                 type="button" 
                 wire:click="$set('showAvatarModal', true)"
-                class="absolute bottom-0 right-0 p-1.5 rounded-full bg-purple-600 hover:bg-purple-700 text-white border-2 border-white dark:border-[#121826] shadow-sm transition-transform active:scale-95"
+                class="absolute bottom-0 right-0 p-1.5 rounded-full bg-purple-600 hover:bg-purple-700 text-white border-2 border-white dark:border-[#121826] shadow-sm transition-transform active:scale-95 flex items-center justify-center aspect-square"
                 title="Change Profile Photo">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
@@ -361,6 +361,17 @@
                     <button wire:click="$set('showAvatarModal', false)" class="text-slate-400 hover:text-slate-600">&times;</button>
                 </div>
 
+                <!-- CIRCULAR AVATAR PREVIEW -->
+                <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-purple-300 dark:border-purple-700 shadow-sm mx-auto aspect-square flex items-center justify-center bg-purple-50 dark:bg-purple-950/40">
+                    @if ($avatarFile)
+                        <img src="{{ $avatarFile->temporaryUrl() }}" class="w-full h-full rounded-full object-cover aspect-square">
+                    @elseif ($user->avatar_url)
+                        <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="w-full h-full rounded-full object-cover aspect-square">
+                    @else
+                        <span class="text-purple-700 dark:text-purple-300 font-bold text-2xl">{{ $user->initials }}</span>
+                    @endif
+                </div>
+
                 <div class="space-y-3">
                     <input 
                         type="file" 
@@ -372,9 +383,9 @@
                         <span class="text-[10px] text-red-500 font-medium block">{{ $message }}</span> 
                     @enderror
 
-                    <div wire:loading wire:target="avatarFile" class="text-xs text-purple-600 flex items-center gap-1.5">
+                    <div wire:loading wire:target="avatarFile" class="text-xs text-purple-600 flex items-center gap-1.5 justify-center">
                         <svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                        Uploading image...
+                        <span>Uploading image...</span>
                     </div>
                 </div>
 

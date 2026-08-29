@@ -98,12 +98,12 @@
                             <span>{{ auth()->user()->current_streak ?? 0 }}d</span>
                         </div>
 
-                        <!-- User Initial / Avatar -->
-                        <a href="/profile" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-purple-400 transition-colors overflow-hidden">
+                        <!-- User Initial / Avatar (Round) -->
+                        <a href="/profile" class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/40 border-2 border-purple-300 dark:border-purple-700 flex items-center justify-center text-xs font-bold text-purple-700 dark:text-purple-300 hover:border-purple-500 transition-colors overflow-hidden aspect-square shadow-sm flex-shrink-0">
                             @if(auth()->user()->avatar_url)
-                                <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-full h-full object-cover">
+                                <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-full h-full rounded-full object-cover aspect-square">
                             @else
-                                {{ substr(auth()->user()->name, 0, 1) }}
+                                <span>{{ substr(auth()->user()->name, 0, 1) }}</span>
                             @endif
                         </a>
                     </div>

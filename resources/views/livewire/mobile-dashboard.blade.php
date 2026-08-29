@@ -8,12 +8,21 @@
             <!-- HEADER -->
             <div class="p-4 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded">
-                            Diocesan Headquarters
-                        </span>
-                        <h2 class="text-base font-bold text-slate-900 dark:text-white leading-tight mt-1">Livingstone Diocese Overview</h2>
-                        <p class="text-xs text-slate-500">Super Administrator: {{ $user->name }}</p>
+                    <div class="flex items-center gap-3">
+                        <a href="/profile" class="w-11 h-11 rounded-full overflow-hidden border-2 border-purple-300 dark:border-purple-700 bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0 shadow-sm aspect-square" title="Profile">
+                            @if($user->avatar_url)
+                                <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="w-full h-full object-cover rounded-full aspect-square">
+                            @else
+                                <span class="font-bold text-xs text-purple-700 dark:text-purple-300">{{ $user->initials }}</span>
+                            @endif
+                        </a>
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded">
+                                Diocesan Headquarters
+                            </span>
+                            <h2 class="text-base font-bold text-slate-900 dark:text-white leading-tight mt-0.5">Livingstone Diocese Overview</h2>
+                            <p class="text-xs text-slate-500">Super Administrator: {{ $user->name }}</p>
+                        </div>
                     </div>
                     <a href="/diocese" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold">
                         Command Hub &rarr;
@@ -136,12 +145,21 @@
             <!-- HEADER -->
             <div class="p-4 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded">
-                            Parish Youth Ministry
-                        </span>
-                        <h2 class="text-base font-bold text-slate-900 dark:text-white leading-tight mt-1">{{ $parish->name }}</h2>
-                        <p class="text-xs text-slate-500">Chairperson: {{ $user->name }} &bull; {{ $parish->deanery?->name }}</p>
+                    <div class="flex items-center gap-3">
+                        <a href="/profile" class="w-11 h-11 rounded-full overflow-hidden border-2 border-purple-300 dark:border-purple-700 bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0 shadow-sm aspect-square" title="Profile">
+                            @if($user->avatar_url)
+                                <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="w-full h-full object-cover rounded-full aspect-square">
+                            @else
+                                <span class="font-bold text-xs text-purple-700 dark:text-purple-300">{{ $user->initials }}</span>
+                            @endif
+                        </a>
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded">
+                                Parish Youth Ministry
+                            </span>
+                            <h2 class="text-base font-bold text-slate-900 dark:text-white leading-tight mt-0.5">{{ $parish->name }}</h2>
+                            <p class="text-xs text-slate-500">Chairperson: {{ $user->name }} &bull; {{ $parish->deanery?->name }}</p>
+                        </div>
                     </div>
                     <a href="/parish" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold">
                         Manage &rarr;
@@ -243,16 +261,25 @@
         <!-- GREETING & FORMATION STATUS -->
         <div class="pt-1">
             <div class="flex items-start justify-between">
-                <div>
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                        {{ now()->format('l, M j') }}
-                    </p>
-                    <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
-                        Peace be with you, {{ explode(' ', $user->name)[0] }}
-                    </h2>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Catholic Youth Formation &bull; {{ $user->parish?->name ?? 'Livingstone Diocese' }}
-                    </p>
+                <div class="flex items-center gap-3">
+                    <a href="/profile" class="w-12 h-12 rounded-full overflow-hidden border-2 border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center flex-shrink-0 shadow-sm aspect-square" title="My Profile">
+                        @if($user->avatar_url)
+                            <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="w-full h-full object-cover rounded-full aspect-square">
+                        @else
+                            <span class="font-bold text-base text-purple-700 dark:text-purple-300">{{ $user->initials }}</span>
+                        @endif
+                    </a>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            {{ now()->format('l, M j') }}
+                        </p>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
+                            Peace be with you, {{ explode(' ', $user->name)[0] }}
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Catholic Youth Formation &bull; {{ $user->parish?->name ?? 'Livingstone Diocese' }}
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Level & XP Micro-Badge -->

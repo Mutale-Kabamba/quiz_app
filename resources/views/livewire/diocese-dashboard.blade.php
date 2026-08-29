@@ -30,12 +30,14 @@
     <!-- ========================================================================= -->
     <div class="p-5 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-4">
         <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-lg border border-purple-200 dark:border-purple-800 flex-shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-6-13h12"/>
-                    </svg>
-                </div>
+            <div class="flex items-center gap-3">
+                <a href="/profile" class="relative w-12 h-12 rounded-full overflow-hidden border-2 border-purple-300 dark:border-purple-700 bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0 shadow-sm aspect-square" title="Diocese Admin Profile">
+                    @if($user->avatar_url)
+                        <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="w-full h-full object-cover rounded-full aspect-square">
+                    @else
+                        <span class="font-bold text-base text-purple-700 dark:text-purple-300">{{ $user->initials }}</span>
+                    @endif
+                </a>
                 <div>
                     <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded">
                         Diocesan Command Center

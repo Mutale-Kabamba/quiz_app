@@ -33,3 +33,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/diocese', \App\Livewire\DioceseDashboard::class)->middleware('super_admin')->name('diocese.dashboard');
     Route::get('/profile', Profile::class)->name('profile');
 });
+
+// Storage fallback route for Windows environment
+Route::get('/storage/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    return response()->file($filePath);
+})->where('path', '.*')->name('storage.local');
+
