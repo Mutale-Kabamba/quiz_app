@@ -546,13 +546,13 @@
 
                         <!-- Card Action Footer -->
                         <div class="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                            <a 
-                                href="{{ route('lesson.show', $lesson->id) }}" 
-                                target="_blank"
+                            <button 
+                                type="button" 
+                                wire:click="previewLesson('{{ $lesson->id }}')" 
                                 class="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-semibold rounded-xl flex items-center gap-1 transition-colors">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                 <span>Preview</span>
-                            </a>
+                            </button>
                             <button 
                                 type="button" 
                                 wire:click="editLesson('{{ $lesson->id }}')"
@@ -1571,4 +1571,147 @@
         </div>
     @endif
 
+    <!-- I. IN-APP LESSON PREVIEW MODAL -->
+    @if($showLessonPreviewModal && $previewLessonId)
+        @php
+            $pLesson = \App\Models\Lesson::with('category')->find($previewLessonId);
+        @endphp
+        @if($pLesson)
+            <div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-0 md:p-6 overflow-hidden animate-fade-in">
+                <div class="bg-white dark:bg-[#121826] border-0 md:border md:border-slate-200 dark:md:border-slate-800 rounded-none md:rounded-3xl max-w-2xl w-full h-full md:h-auto md:max-h-[88vh] shadow-2xl flex flex-col overflow-hidden">
+                    <!-- Top Navigation Bar -->
+                    <div class="p-3 px-4 md:px-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#121826] flex-shrink-0">
+                        <button 
+                            type="button"
+                            wire:click="closeLessonPreview" 
+                            class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                            <span>Back</span>
+                        </button>
+
+                        <div class="flex items-center gap-1.5">
+                            <span class="px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[11px] font-bold">
+                                Preview Mode
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button 
+                                type="button"
+                                wire:click="editLesson('{{ $pLesson->id }}')" 
+                                class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                <span>Edit</span>
+                            </button>
+                            <button 
+                                type="button"
+                                wire:click="closeLessonPreview" 
+                                class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white flex items-center justify-center text-lg font-bold transition-all">
+                                &times;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Lesson Body -->
+                    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 text-left">
+                        <!-- Category Badge & Read Time -->
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-bold">
+                                {{ $pLesson->category?->name ?? 'Formation Track' }}
+                            </span>
+                            <span class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+                                <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                                {{ $pLesson->estimated_read_minutes ?? 5 }} min read
+                                <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                                Level {{ $pLesson->difficulty ?? 1 }}
+                            </span>
+                        </div>
+
+                        <!-- Title & Subtitle -->
+                        <div class="space-y-1 pb-2">
+                            <h2 class="text-lg md:text-2xl font-bold font-serif text-slate-900 dark:text-white leading-snug">
+                                {{ $pLesson->title }}
+                            </h2>
+                            @if($pLesson->subheading)
+                                <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                                    {{ $pLesson->subheading }}
+                                </p>
+                            @endif
+                        </div>
+
+                        <!-- Key Takeaways Card -->
+                        @if(!empty($pLesson->summary_takeaways) && is_array($pLesson->summary_takeaways))
+                            <div class="p-4 bg-purple-50/70 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/50 rounded-2xl space-y-2">
+                                <div class="flex items-center gap-1.5 text-xs font-bold text-purple-900 dark:text-purple-200">
+                                    <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                                    <span>Key Catechetical Takeaways</span>
+                                </div>
+                                <ul class="space-y-1.5 text-xs text-purple-950 dark:text-purple-200 pl-4 list-disc marker:text-purple-500">
+                                    @foreach($pLesson->summary_takeaways as $takeaway)
+                                        <li class="leading-relaxed">{{ $takeaway }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        <!-- Main Sections -->
+                        @if(!empty($pLesson->content_sections) && is_array($pLesson->content_sections))
+                            <div class="space-y-4">
+                                @foreach($pLesson->content_sections as $sec)
+                                    <div class="space-y-1.5">
+                                        @if(!empty($sec['heading']))
+                                            <h3 class="text-sm md:text-base font-bold text-slate-900 dark:text-white font-serif">
+                                                {{ $sec['heading'] }}
+                                            </h3>
+                                        @endif
+                                        @if(!empty($sec['body']))
+                                            <div class="text-xs md:text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line font-sans">
+                                                {{ $sec['body'] }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <!-- Scripture Box -->
+                        @if($pLesson->scripture_citations)
+                            <div class="p-3.5 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-900/40 rounded-xl space-y-1">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 block">Holy Scripture</span>
+                                <p class="text-xs text-amber-950 dark:text-amber-200 font-serif italic leading-relaxed">
+                                    {{ $pLesson->scripture_citations }}
+                                </p>
+                            </div>
+                        @endif
+
+                        <!-- Catechism Box -->
+                        @if($pLesson->catechism_citations)
+                            <div class="p-3.5 bg-sky-50/70 dark:bg-sky-950/20 border border-sky-200/70 dark:border-sky-900/40 rounded-xl space-y-1">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-sky-800 dark:text-sky-400 block">Catechism of the Catholic Church</span>
+                                <p class="text-xs text-sky-950 dark:text-sky-200 leading-relaxed font-sans">
+                                    {{ $pLesson->catechism_citations }}
+                                </p>
+                            </div>
+                        @endif
+
+                        <!-- Bottom Spacer -->
+                        <div class="h-4"></div>
+                    </div>
+
+                    <!-- Bottom Action Bar -->
+                    <div class="p-3 px-4 md:px-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex items-center justify-between flex-shrink-0">
+                        <span class="text-[11px] text-slate-400">Youth Formation Preview</span>
+                        <button 
+                            type="button"
+                            wire:click="closeLessonPreview" 
+                            class="px-4 py-2 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold transition-all">
+                            Done Previewing
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endif
+
 </div>
+

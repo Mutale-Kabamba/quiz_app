@@ -92,7 +92,7 @@ class DioceseDashboard extends Component
     public string $newQuestionCitation = '';
     public int $newQuestionLevel = 1;
 
-    // 6. Study Lesson Form (Create & Edit)
+    // 6. Study Lesson Form (Create & Edit & In-App Preview)
     public ?string $editLessonId = null;
     public ?int $lessonCategoryId = null;
     public string $lessonTitle = '';
@@ -104,6 +104,8 @@ class DioceseDashboard extends Component
     public string $lessonScripture = '';
     public string $lessonCatechism = '';
     public string $lessonStatus = 'published';
+    public ?string $previewLessonId = null;
+    public bool $showLessonPreviewModal = false;
 
     // 7. Rally & Competition Form (Create & Edit)
     public ?string $editCompetitionId = null;
@@ -721,6 +723,18 @@ class DioceseDashboard extends Component
         $lesson = Lesson::findOrFail($id);
         $lesson->delete();
         $this->successMessage = "Lesson deleted successfully.";
+    }
+
+    public function previewLesson(string $id)
+    {
+        $this->previewLessonId = $id;
+        $this->showLessonPreviewModal = true;
+    }
+
+    public function closeLessonPreview()
+    {
+        $this->previewLessonId = null;
+        $this->showLessonPreviewModal = false;
     }
 
     // =========================================================================

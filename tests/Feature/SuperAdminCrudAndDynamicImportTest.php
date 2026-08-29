@@ -576,6 +576,16 @@ class SuperAdminCrudAndDynamicImportTest extends TestCase
         // 3. StudyHub valid category integer or slug
         $catResponse = $this->get('/study/' . $this->category->id);
         $catResponse->assertOk();
+
+        // 4. In-App Lesson Preview Modal on DioceseDashboard
+        Livewire::test(DioceseDashboard::class)
+            ->call('previewLesson', $lesson->id)
+            ->assertSet('showLessonPreviewModal', true)
+            ->assertSet('previewLessonId', $lesson->id)
+            ->assertSee('The Holy Rosary: Contemplating the Face of Christ')
+            ->call('closeLessonPreview')
+            ->assertSet('showLessonPreviewModal', false)
+            ->assertSet('previewLessonId', null);
     }
 }
 
