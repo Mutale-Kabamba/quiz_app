@@ -36,7 +36,7 @@ class MobileAppFlowTest extends TestCase
     {
         $youth = User::where('role', 'youth')->first();
 
-        $this->actingAs($youth)->get('/')->assertStatus(200)->assertSee('Competition Arena');
+        $this->actingAs($youth)->get('/')->assertStatus(200)->assertSee('Formation Progress');
         $this->actingAs($youth)->get('/quiz')->assertStatus(200);
         $this->actingAs($youth)->get('/leaderboard')->assertStatus(200);
         $this->actingAs($youth)->get('/study')->assertStatus(200);

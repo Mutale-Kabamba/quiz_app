@@ -26,6 +26,21 @@ class QuestionResource extends Resource
     protected static string | UnitEnum | null $navigationGroup = 'Quiz & Content Management';
     protected static ?string $navigationLabel = 'Questions Repository';
 
+    public static function canCreate(): bool
+    {
+        return \Illuminate\Support\Facades\Auth::user()?->isSuperAdmin() ?? false;
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return \Illuminate\Support\Facades\Auth::user()?->isSuperAdmin() ?? false;
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return \Illuminate\Support\Facades\Auth::user()?->isSuperAdmin() ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema

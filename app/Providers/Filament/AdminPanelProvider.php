@@ -38,8 +38,10 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
+                \App\Filament\Widgets\DiocesanCommandKpisWidget::class,
+                \App\Filament\Widgets\DiocesanActionRequiredWidget::class,
+                \App\Filament\Widgets\ParishKpiOverviewWidget::class,
+                \App\Filament\Widgets\ParishAttentionRequiredWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

@@ -20,13 +20,28 @@ class Parish extends Model
         return $this->hasMany(User::class);
     }
 
-    public function chairpersons(): HasMany
+    public function events(): HasMany
     {
-        return $this->hasMany(User::class)->where('role', 'chairperson');
+        return $this->hasMany(ParishEvent::class);
     }
 
-    public function approvedYouths(): HasMany
+    public function announcements(): HasMany
     {
-        return $this->hasMany(User::class)->where('role', 'youth')->where('status', 'approved');
+        return $this->hasMany(ParishAnnouncement::class);
+    }
+
+    public function competitions(): HasMany
+    {
+        return $this->hasMany(ParishCompetition::class);
+    }
+
+    public function outgoingTransfers(): HasMany
+    {
+        return $this->hasMany(ParishTransfer::class, 'from_parish_id');
+    }
+
+    public function incomingTransfers(): HasMany
+    {
+        return $this->hasMany(ParishTransfer::class, 'to_parish_id');
     }
 }

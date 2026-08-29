@@ -18,4 +18,14 @@ class Category extends Model
     {
         return $this->hasMany(StudyNote::class);
     }
+
+    public function lessons(): HasMany
+    {
+        return $this->hasMany(Lesson::class)->orderBy('display_order');
+    }
+
+    public function flashcards(): HasMany
+    {
+        return $this->hasMany(Flashcard::class);
+    }
 }

@@ -1,83 +1,135 @@
-<div class="space-y-4 pb-10">
+<div class="space-y-5 pb-16">
 
-    <!-- PROFILE CARD -->
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl text-center relative overflow-hidden">
-        <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 mx-auto flex items-center justify-center text-slate-950 font-black text-2xl shadow-glow-gold mb-3 border-2 border-amber-300">
-            {{ substr($user->name, 0, 1) }}
+    <!-- USER PROFILE IDENTITY CARD -->
+    <div class="p-6 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 text-center space-y-3">
+        <div class="w-14 h-14 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-xl mx-auto border border-purple-200 dark:border-purple-800">
+            {{ strtoupper(substr($user->name, 0, 1)) }}
         </div>
 
-        <h2 class="text-lg font-black font-display text-white">{{ $user->name }}</h2>
-        <p class="text-xs text-amber-400 font-semibold">{{ $user->parish?->name ?? 'Livingstone Diocese' }}</p>
-        <span class="text-[10px] text-slate-500 block mt-0.5">{{ $user->parish?->deanery?->name ?? 'Livingstone Deanery' }}</span>
-
-        <!-- STATUS BADGE -->
-        <div class="mt-3">
-            @if($user->status === 'approved')
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full text-xs font-black">
-                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                    Verified Parish Youth
-                </span>
-            @elseif($user->status === 'pending')
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full text-xs font-black">
-                    ⏳ Verification Pending
-                </span>
-            @else
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-full text-xs font-black">
-                    ⚠️ Verification Rejected
-                </span>
-            @endif
+        <div>
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">{{ $user->name }}</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ $user->phone }} &bull; {{ $user->parish?->name ?? 'Livingstone Diocese' }}</p>
+            <span class="inline-block mt-2 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                {{ ucfirst($user->role) }}
+            </span>
         </div>
     </div>
 
-    <!-- STATS COUNTERS -->
-    <div class="grid grid-cols-3 gap-2.5">
-        <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl text-center shadow-lg">
-            <span class="text-[10px] text-slate-400 font-bold uppercase block">Total Points</span>
-            <span class="text-base font-black text-amber-400 font-display">{{ number_format($totalScore) }}</span>
+    <!-- LEVEL PROGRESS & XP LADDER -->
+    <div class="p-4 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-3">
+        <div class="flex items-center justify-between text-xs">
+            <div>
+                <span class="text-[10px] font-bold uppercase text-purple-700 dark:text-purple-400 tracking-wider block">Formation Rank</span>
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white">
+                    @php
+                        $levelTitle = match($currentLevel) {
+                            1 => 'Seeker of Truth',
+                            2 => 'Faithful Disciple',
+                            3 => 'Catechetical Scholar',
+                            4 => 'Scripture Pillar',
+                            5 => 'Diocesan Evangelist',
+                            default => 'Youth Champion',
+                        };
+                    @endphp
+                    Level {{ $currentLevel }}: {{ $levelTitle }}
+                </h3>
+            </div>
+            <span class="text-xs font-bold text-purple-600 dark:text-purple-400">{{ number_format($currentXp) }} XP</span>
         </div>
-        <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl text-center shadow-lg">
-            <span class="text-[10px] text-slate-400 font-bold uppercase block">Active Streak</span>
-            <span class="text-base font-black text-emerald-400 font-display">🔥 {{ $user->current_streak }}d</span>
+
+        <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div class="h-full bg-purple-600 dark:bg-purple-500 rounded-full transition-all duration-300"
+                 style="width: {{ $levelProgressPercentage }}%"></div>
         </div>
-        <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl text-center shadow-lg">
-            <span class="text-[10px] text-slate-400 font-bold uppercase block">Sessions</span>
-            <span class="text-base font-black text-slate-200 font-display">{{ $totalSessions }}</span>
+
+        <div class="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+            <span>Progress to Level {{ $currentLevel + 1 }}</span>
+            <span>{{ $nextThreshold - $currentXp }} XP needed</span>
         </div>
     </div>
 
-    <!-- CATECHETICAL MILESTONES & BADGES -->
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
-        <h3 class="text-sm font-extrabold text-white font-display">Earned Milestones &amp; Badges</h3>
-
-        <div class="grid grid-cols-3 gap-2 text-center">
-            <!-- Badge 1 -->
-            <div class="p-2.5 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col items-center">
-                <span class="text-2xl mb-1">📜</span>
-                <h4 class="text-[10px] font-bold text-white leading-tight">Scripture Pillar</h4>
-                <span class="text-[9px] text-amber-400 font-semibold mt-0.5">Unlocked</span>
-            </div>
-
-            <!-- Badge 2 -->
-            <div class="p-2.5 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col items-center">
-                <span class="text-2xl mb-1">🕊️</span>
-                <h4 class="text-[10px] font-bold text-white leading-tight">YOUCAT Scholar</h4>
-                <span class="text-[9px] text-amber-400 font-semibold mt-0.5">Unlocked</span>
-            </div>
-
-            <!-- Badge 3 (Locked) -->
-            <div class="p-2.5 bg-slate-950/40 rounded-2xl border border-slate-800/40 flex flex-col items-center opacity-40">
-                <span class="text-2xl mb-1">⚡</span>
-                <h4 class="text-[10px] font-bold text-slate-400 leading-tight">Rally Champion</h4>
-                <span class="text-[9px] text-slate-500 font-semibold mt-0.5">Locked</span>
-            </div>
+    <!-- FORMATION METRICS (FLAT 4-GRID) -->
+    <div class="grid grid-cols-2 gap-2.5">
+        <div class="p-3.5 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800">
+            <span class="text-xs text-slate-500 dark:text-slate-400 block font-medium">Lessons Mastered</span>
+            <span class="text-base font-bold text-slate-900 dark:text-white mt-0.5 block">{{ $completedLessonsCount }}</span>
+            <span class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold mt-1 block">Catechetical tracks</span>
+        </div>
+        <div class="p-3.5 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800">
+            <span class="text-xs text-slate-500 dark:text-slate-400 block font-medium">Flashcards Mastered</span>
+            <span class="text-base font-bold text-slate-900 dark:text-white mt-0.5 block">{{ $masteredFlashcardsCount }}</span>
+            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1 block">Spaced reviews</span>
+        </div>
+        <div class="p-3.5 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800">
+            <span class="text-xs text-slate-500 dark:text-slate-400 block font-medium">Quizzes Completed</span>
+            <span class="text-base font-bold text-slate-900 dark:text-white mt-0.5 block">{{ $totalQuizzes }}</span>
+            <span class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold mt-1 block">{{ number_format($totalScore) }} Total Pts</span>
+        </div>
+        <div class="p-3.5 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800">
+            <span class="text-xs text-slate-500 dark:text-slate-400 block font-medium">Formation Streak</span>
+            <span class="text-base font-bold text-amber-600 dark:text-amber-400 mt-0.5 block">{{ $user->current_streak ?? 0 }} Days</span>
+            <span class="text-[10px] text-slate-400 font-medium mt-1 block">Longest: {{ $user->longest_streak ?? 0 }} days</span>
         </div>
     </div>
+
+    <!-- ACHIEVEMENTS BADGES GALLERY -->
+    <div class="space-y-2.5">
+        <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+            Achievements
+        </h3>
+
+        <div class="grid grid-cols-2 gap-2">
+            @foreach($allAchievements as $ach)
+                @php
+                    $isUnlocked = in_array($ach->id, $unlockedAchievementIds);
+                @endphp
+                <div class="p-3 rounded-xl border transition-colors {{ $isUnlocked ? 'bg-white dark:bg-[#121826] border-purple-300 dark:border-purple-800' : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-60' }}">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 {{ $isUnlocked ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300' : 'bg-slate-200 dark:bg-slate-800 text-slate-400' }}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-900 dark:text-white leading-tight">{{ $ach->title }}</h4>
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 block line-clamp-1 mt-0.5">{{ $ach->description }}</span>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    <!-- BOOKMARKED LESSONS -->
+    @if($bookmarkedLessons->isNotEmpty())
+        <div class="space-y-2.5">
+            <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Bookmarked Lessons
+            </h3>
+
+            <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800">
+                @foreach($bookmarkedLessons as $bLesson)
+                    <a href="/lesson/{{ $bLesson->id }}" class="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                        <div>
+                            <span class="text-[9px] font-bold uppercase text-purple-600 dark:text-purple-400 block">{{ $bLesson->category?->name }}</span>
+                            <h4 class="text-xs font-semibold text-slate-900 dark:text-white">{{ $bLesson->title }}</h4>
+                        </div>
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     <!-- LOGOUT BUTTON -->
-    <button 
-        type="button"
-        wire:click="logout" 
-        class="w-full py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold rounded-2xl text-xs transition-all touch-press">
-        Sign Out Account
-    </button>
+    <div class="pt-2">
+        <button 
+            type="button" 
+            wire:click="logout" 
+            class="w-full py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/50 rounded-xl font-semibold text-xs transition-colors">
+            Sign Out
+        </button>
+    </div>
 </div>

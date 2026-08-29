@@ -1,159 +1,175 @@
-<div class="space-y-4 pb-12">
+<div class="space-y-5 pb-20">
 
-    <!-- LEADERBOARD TITLE & REPUTATION HEADER -->
-    <div class="text-center pt-1">
-        <h2 class="text-xl font-black font-display text-white">Hierarchical Leaderboard</h2>
-        <p class="text-[11px] text-slate-400">Diocese of Livingstone Catholic Youth Rankings</p>
+    <!-- LEADERBOARD HEADER -->
+    <div class="pt-1">
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Formation Leaderboard</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Livingstone Diocesan Youth Ranks</p>
     </div>
 
-    <!-- 3-SEGMENTED HIERARCHICAL SCOPE SWITCHER -->
-    <div class="p-1 rounded-2xl bg-slate-900 border border-slate-800 flex items-center shadow-md">
-        <button 
-            type="button" 
-            wire:click="setScope('parish')"
-            class="w-1/3 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 {{ $scope === 'parish' ? 'bg-amber-500 text-slate-950 shadow-glow-gold' : 'text-slate-400 hover:text-white' }}">
-            <span>⛪</span> Parish
-        </button>
-
-        <button 
-            type="button" 
-            wire:click="setScope('deanery')"
-            class="w-1/3 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 {{ $scope === 'deanery' ? 'bg-amber-500 text-slate-950 shadow-glow-gold' : 'text-slate-400 hover:text-white' }}">
-            <span>🏛️</span> Deanery
-        </button>
-
-        <button 
-            type="button" 
-            wire:click="setScope('diocese')"
-            class="w-1/3 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 {{ $scope === 'diocese' ? 'bg-amber-500 text-slate-950 shadow-glow-gold' : 'text-slate-400 hover:text-white' }}">
-            <span>👑</span> Diocese
-        </button>
-    </div>
-
-    <!-- CATEGORY FILTER PILLS (HORIZONTAL SCROLL) -->
-    <div class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
+    <!-- 1. TIMEFRAME SELECTOR -->
+    <div class="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-semibold">
         <button 
             type="button"
-            wire:click="setCategory(null)"
-            class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all {{ is_null($categoryId) ? 'bg-slate-800 text-amber-400 border border-amber-500/40' : 'bg-slate-900/80 text-slate-400 border border-slate-800' }}">
-            🌟 All Tracks
+            wire:click="setTimeframe('today')"
+            class="py-1.5 rounded-lg transition-colors {{ $timeframe === 'today' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' }}">
+            Today
         </button>
-        @foreach($categories as $cat)
-            <button 
-                type="button"
-                wire:click="setCategory({{ $cat->id }})"
-                class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all {{ $categoryId === $cat->id ? 'bg-slate-800 text-amber-400 border border-amber-500/40' : 'bg-slate-900/80 text-slate-400 border border-slate-800' }}">
-                {{ $cat->name }}
-            </button>
-        @endforeach
+        <button 
+            type="button"
+            wire:click="setTimeframe('this_week')"
+            class="py-1.5 rounded-lg transition-colors {{ $timeframe === 'this_week' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' }}">
+            Week
+        </button>
+        <button 
+            type="button"
+            wire:click="setTimeframe('this_month')"
+            class="py-1.5 rounded-lg transition-colors {{ $timeframe === 'this_month' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' }}">
+            Month
+        </button>
+        <button 
+            type="button"
+            wire:click="setTimeframe('all_time')"
+            class="py-1.5 rounded-lg transition-colors {{ $timeframe === 'all_time' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' }}">
+            All-Time
+        </button>
     </div>
 
-    <!-- VISUAL TOP 3 PODIUM (If rankings exist) -->
-    @if($top3->count() > 0)
-        <div class="pt-4 pb-2">
-            <div class="flex items-end justify-center gap-2 max-w-xs mx-auto">
-                <!-- RANK 2: SILVER PODIUM (LEFT) -->
-                @if($top3->has(1))
-                    <div class="w-1/3 text-center flex flex-col items-center">
-                        <div class="relative mb-2">
-                            <div class="w-12 h-12 rounded-2xl bg-slate-800 border-2 border-slate-400 flex items-center justify-center text-sm font-black text-slate-200 shadow-md">
-                                {{ substr($top3[1]->user_name, 0, 1) }}
-                            </div>
-                            <span class="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-400 text-slate-950 font-black text-[10px] flex items-center justify-center">2</span>
+    <!-- 2. HIERARCHICAL SCOPE SELECTOR -->
+    <div class="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-semibold">
+        <button 
+            type="button"
+            wire:click="setScope('parish')"
+            class="py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 {{ $scope === 'parish' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' }}">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <span>Parish</span>
+        </button>
+        <button 
+            type="button"
+            wire:click="setScope('deanery')"
+            class="py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 {{ $scope === 'deanery' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' }}">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
+            </svg>
+            <span>Deanery</span>
+        </button>
+        <button 
+            type="button"
+            wire:click="setScope('diocese')"
+            class="py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 {{ $scope === 'diocese' ? 'bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 font-bold border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white' }}">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-6-13h12"/>
+            </svg>
+            <span>Diocese</span>
+        </button>
+    </div>
+
+    <!-- 3. TOP 3 PODIUM (FLAT M3 DESIGN) -->
+    @if($top3->isNotEmpty())
+        <div class="pt-2 pb-1">
+            <div class="grid grid-cols-3 gap-2 items-end">
+                <!-- 2ND PLACE (SILVER) -->
+                @if(isset($top3[1]))
+                    <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-center flex flex-col items-center justify-end h-36">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center text-xs mb-1 border border-slate-200 dark:border-slate-700">
+                            2
                         </div>
-                        <h4 class="text-xs font-bold text-white truncate max-w-[80px]">{{ $top3[1]->user_name }}</h4>
-                        <span class="text-[10px] text-amber-400 font-extrabold">{{ number_format($top3[1]->total_points) }} pts</span>
-                        <div class="w-full h-16 bg-gradient-to-t from-slate-900 to-slate-800 rounded-t-2xl mt-2 border-t border-slate-700"></div>
+                        <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-full leading-tight">{{ explode(' ', $top3[1]->user_name)[0] }}</h4>
+                        <span class="text-[10px] text-slate-400 truncate max-w-full block">{{ $top3[1]->parish_name ?? 'Parish' }}</span>
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">{{ number_format($top3[1]->total_points) }} pts</span>
+                    </div>
+                @else
+                    <div class="h-36"></div>
+                @endif
+
+                <!-- 1ST PLACE (GOLD) -->
+                @if(isset($top3[0]))
+                    <div class="bg-white dark:bg-[#121826] border-2 border-amber-500/50 rounded-xl p-3 text-center flex flex-col items-center justify-end h-44">
+                        <div class="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-bold flex items-center justify-center text-sm mb-1 border border-amber-300 dark:border-amber-700">
+                            1
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-full leading-tight">{{ explode(' ', $top3[0]->user_name)[0] }}</h4>
+                        <span class="text-[10px] text-amber-600 dark:text-amber-400 truncate max-w-full block">{{ $top3[0]->parish_name ?? 'Parish' }}</span>
+                        <span class="text-xs font-bold text-purple-700 dark:text-purple-400 mt-1">{{ number_format($top3[0]->total_points) }} pts</span>
                     </div>
                 @endif
 
-                <!-- RANK 1: GOLD PODIUM (CENTER) -->
-                @if($top3->has(0))
-                    <div class="w-1/3 text-center flex flex-col items-center">
-                        <span class="text-xl animate-bounce mb-0.5">👑</span>
-                        <div class="relative mb-2">
-                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 flex items-center justify-center text-base font-black text-slate-950 shadow-glow-gold border-2 border-amber-300">
-                                {{ substr($top3[0]->user_name, 0, 1) }}
-                            </div>
-                            <span class="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center shadow-md">1</span>
+                <!-- 3RD PLACE (BRONZE) -->
+                @if(isset($top3[2]))
+                    <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-center flex flex-col items-center justify-end h-32">
+                        <div class="w-7 h-7 rounded-full bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 font-bold flex items-center justify-center text-xs mb-1 border border-amber-200 dark:border-amber-800">
+                            3
                         </div>
-                        <h4 class="text-xs font-extrabold text-white truncate max-w-[90px]">{{ $top3[0]->user_name }}</h4>
-                        <span class="text-xs text-amber-400 font-black">{{ number_format($top3[0]->total_points) }} pts</span>
-                        <div class="w-full h-24 bg-gradient-to-t from-slate-900 to-amber-950/40 rounded-t-2xl mt-2 border-t-2 border-amber-500"></div>
+                        <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate max-w-full leading-tight">{{ explode(' ', $top3[2]->user_name)[0] }}</h4>
+                        <span class="text-[10px] text-slate-400 truncate max-w-full block">{{ $top3[2]->parish_name ?? 'Parish' }}</span>
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">{{ number_format($top3[2]->total_points) }} pts</span>
                     </div>
-                @endif
-
-                <!-- RANK 3: BRONZE PODIUM (RIGHT) -->
-                @if($top3->has(2))
-                    <div class="w-1/3 text-center flex flex-col items-center">
-                        <div class="relative mb-2">
-                            <div class="w-12 h-12 rounded-2xl bg-slate-800 border-2 border-amber-700 flex items-center justify-center text-sm font-black text-amber-600 shadow-md">
-                                {{ substr($top3[2]->user_name, 0, 1) }}
-                            </div>
-                            <span class="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-700 text-white font-black text-[10px] flex items-center justify-center">3</span>
-                        </div>
-                        <h4 class="text-xs font-bold text-white truncate max-w-[80px]">{{ $top3[2]->user_name }}</h4>
-                        <span class="text-[10px] text-amber-400 font-extrabold">{{ number_format($top3[2]->total_points) }} pts</span>
-                        <div class="w-full h-12 bg-gradient-to-t from-slate-900 to-slate-800 rounded-t-2xl mt-2 border-t border-slate-700"></div>
-                    </div>
+                @else
+                    <div class="h-32"></div>
                 @endif
             </div>
-        </div>
-
-        <!-- REMAINING RANKS (4–50) LIST -->
-        <div class="space-y-2">
-            @foreach($remaining as $index => $player)
-                <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800/80 flex items-center justify-between shadow-sm {{ $currentUser && $currentUser->id === $player->user_id ? 'border-amber-500/80 bg-amber-500/10' : '' }}">
-                    <div class="flex items-center gap-3">
-                        <span class="w-6 text-center font-black text-xs text-slate-500">
-                            #{{ $index + 4 }}
-                        </span>
-                        <div class="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-300">
-                            {{ substr($player->user_name, 0, 1) }}
-                        </div>
-                        <div>
-                            <h4 class="text-xs font-bold text-white leading-tight">{{ $player->user_name }}</h4>
-                            <p class="text-[10px] text-slate-400 leading-tight">{{ $player->parish_name ?? 'Livingstone Diocese' }}</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-xs font-black text-amber-400 block">{{ number_format($player->total_points) }}</span>
-                        <span class="text-[9px] text-slate-500 font-semibold">{{ $player->attempts_count }} sessions</span>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    @else
-        <!-- EMPTY LEADERBOARD STATE -->
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center">
-            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
-                🏆
-            </div>
-            <h3 class="text-sm font-bold text-white">No Ranked Scores Yet</h3>
-            <p class="text-xs text-slate-400 mt-1">Be the first approved youth from your parish to complete a ranked quiz!</p>
-            <a href="/quiz?mode=ranked" class="mt-4 inline-block px-4 py-2 bg-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-glow-gold">
-                Start First Ranked Quiz
-            </a>
         </div>
     @endif
 
-    <!-- STICKY BOTTOM USER RANKING BADGE -->
+    <!-- 4. REMAINING RANKS (4–50) -->
+    <div class="space-y-1.5">
+        @forelse($remaining as $index => $item)
+            @php $rank = $index + 4; @endphp
+            <div class="p-3 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="w-6 text-center text-xs font-bold text-slate-400">#{{ $rank }}</span>
+                    <div>
+                        <h4 class="text-xs font-semibold text-slate-900 dark:text-white leading-tight">{{ $item->user_name }}</h4>
+                        <span class="text-[11px] text-slate-400 block">{{ $item->parish_name ?? 'Livingstone Diocese' }}</span>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <span class="text-xs font-bold text-purple-600 dark:text-purple-400 block">{{ number_format($item->total_points) }} pts</span>
+                    <span class="text-[10px] text-slate-400">{{ $item->attempts_count }} quizzes</span>
+                </div>
+            </div>
+        @empty
+            @if($top3->isEmpty())
+                <div class="p-8 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 text-center space-y-2">
+                    <div class="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xs font-bold text-slate-900 dark:text-white">No Ranked Quiz Records Yet</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Complete a ranked quiz to be the first on the Diocesan leaderboard.</p>
+                </div>
+            @endif
+        @endforelse
+    </div>
+
+    <!-- 5. STICKY USER STANDING -->
     @if($currentUser)
-        <div class="fixed bottom-16 left-0 right-0 max-w-md mx-auto px-3 pointer-events-none z-30">
-            <div class="p-3 bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/80 border border-amber-500/40 rounded-2xl shadow-2xl backdrop-blur-md flex items-center justify-between pointer-events-auto">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md">
-                        {{ $userRank ? '#' . $userRank : '—' }}
+        <div class="fixed bottom-16 inset-x-0 max-w-md mx-auto px-4 z-40">
+            <div class="p-3 bg-white/95 dark:bg-[#121826]/95 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-xs border border-purple-200 dark:border-purple-800">
+                        #{{ $userRank ?? '—' }}
                     </div>
                     <div>
-                        <span class="text-[10px] font-bold text-amber-400 uppercase tracking-tight block">Your Current Standing</span>
-                        <h4 class="text-xs font-extrabold text-white truncate max-w-[170px]">{{ $currentUser->name }}</h4>
+                        <span class="text-[10px] font-medium text-slate-400 uppercase tracking-tight block">Your Standing</span>
+                        <h4 class="text-xs font-bold text-slate-900 dark:text-white">
+                            @if($pointsBehind && $aheadPlayerName)
+                                <span class="text-purple-600 dark:text-purple-400">{{ $pointsBehind }} pts</span> behind {{ explode(' ', $aheadPlayerName)[0] }}
+                            @elseif($userRank === 1)
+                                Ranked #1 Champion
+                            @else
+                                {{ number_format($userPoints) }} Total Points
+                            @endif
+                        </h4>
                     </div>
                 </div>
-                <div class="text-right">
-                    <span class="text-xs font-black text-amber-400 block">{{ number_format($userPoints) }} pts</span>
-                    <span class="text-[9px] text-slate-400">{{ $currentUser->parish?->name ?? 'Livingstone' }}</span>
-                </div>
+
+                <a href="/quiz?tab=compete" class="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-colors touch-press">
+                    Compete
+                </a>
             </div>
         </div>
     @endif

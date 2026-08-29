@@ -3,10 +3,16 @@
 namespace App\Livewire;
 
 use App\Models\Category;
+use App\Models\DailyChallenge;
 use App\Models\Question;
 use App\Models\QuestionReport;
 use App\Models\QuizAttempt;
+use App\Models\QuizAttemptAnswer;
+use App\Models\UserChallengeParticipation;
+use App\Services\GamificationService;
+use App\Services\LearningIntelligenceService;
 use App\Services\OfflineSyncService;
+use App\Services\StreakService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -16,8 +22,10 @@ class QuizRunner extends Component
     public ?int $categoryId = null;
     public int $level = 1;
     public string $mode = 'ranked'; // 'practice' or 'ranked'
+    public ?string $challenge = null; // 'today'
 
     public array $questions = [];
+    public array $submittedAnswers = []; // [ ['question_id' => ..., 'category_id' => ..., 'selected' => ..., 'is_correct' => ...] ]
     public int $currentIndex = 0;
     public ?string $selectedOption = null;
     public bool $isAnswerSubmitted = false;
@@ -32,6 +40,11 @@ class QuizRunner extends Component
     public int $totalTimeTaken = 0;
     public bool $quizFinished = false;
     public string $attemptUuid;
+    public int $xpEarned = 0;
+
+    // Smart Analysis for Results
+    public array $masteredTopics = [];
+    public array $weakTopics = [];
 
     // Question Dispute / Flagging Modal
     public bool $showReportModal = false;
@@ -39,11 +52,12 @@ class QuizRunner extends Component
     public string $reportNotes = '';
     public bool $reportSubmitted = false;
 
-    public function mount(?int $categoryId = null, int $level = 1, string $mode = 'ranked')
+    public function mount(?int $categoryId = null, int $level = 1, string $mode = 'ranked', ?string $challenge = null)
     {
-        $this->categoryId = $categoryId ?? Category::first()?->id ?? 1;
+        $this->categoryId = $categoryId;
         $this->level = $level;
         $this->mode = $mode;
+        $this->challenge = request()->query('challenge', $challenge);
         $this->attemptUuid = (string) Str::uuid();
 
         // Level-based timer limits
@@ -60,6 +74,17 @@ class QuizRunner extends Component
 
     public function loadQuestions(): void
     {
+        // 1. Check if loading Daily Challenge
+        if ($this->challenge === 'today') {
+            $dailyChallenge = DailyChallenge::where('challenge_date', now()->toDateString())->first();
+            if ($dailyChallenge && !empty($dailyChallenge->question_ids)) {
+                $rawQuestions = Question::whereIn('id', $dailyChallenge->question_ids)->get();
+                $this->formatAndSetQuestions($rawQuestions);
+                return;
+            }
+        }
+
+        // 2. Standard Category / Level Query
         $query = Question::where('is_active', true);
 
         if ($this->categoryId) {
@@ -72,6 +97,15 @@ class QuizRunner extends Component
 
         $rawQuestions = $query->inRandomOrder()->limit(10)->get();
 
+        if ($rawQuestions->isEmpty()) {
+            $rawQuestions = Question::where('is_active', true)->inRandomOrder()->limit(10)->get();
+        }
+
+        $this->formatAndSetQuestions($rawQuestions);
+    }
+
+    protected function formatAndSetQuestions($rawQuestions): void
+    {
         $this->questions = $rawQuestions->map(function ($q) {
             $options = $q->options ?? [];
             $keys = array_keys($options);
@@ -83,6 +117,7 @@ class QuizRunner extends Component
 
             return [
                 'id' => $q->id,
+                'category_id' => $q->category_id,
                 'category_name' => $q->category?->name ?? 'General Doctrine',
                 'level' => $q->level,
                 'question_text' => $q->question_text,
@@ -109,6 +144,14 @@ class QuizRunner extends Component
 
         $currentQ = $this->questions[$this->currentIndex];
         $this->isCorrect = ($this->selectedOption === $currentQ['correct_option_key']);
+
+        $this->submittedAnswers[] = [
+            'question_id' => $currentQ['id'],
+            'category_id' => $currentQ['category_id'],
+            'category_name' => $currentQ['category_name'],
+            'selected_option_key' => $this->selectedOption,
+            'is_correct' => $this->isCorrect,
+        ];
 
         if ($this->isCorrect) {
             $this->correctCount++;
@@ -149,10 +192,11 @@ class QuizRunner extends Component
         if (count($this->questions) > 0 && Auth::check()) {
             $user = Auth::user();
 
+            // 1. Create Quiz Attempt
             $attempt = QuizAttempt::create([
                 'id' => $this->attemptUuid,
                 'user_id' => $user->id,
-                'category_id' => $this->categoryId ?? 1,
+                'category_id' => $this->categoryId ?? $this->questions[0]['category_id'] ?? 1,
                 'level' => $this->level,
                 'mode' => $this->mode,
                 'score' => $this->totalScore,
@@ -163,15 +207,55 @@ class QuizRunner extends Component
                 'is_synced' => false,
             ]);
 
-            // Update user streak & activity
-            if ($user->last_activity_date?->isYesterday()) {
-                $user->increment('current_streak');
-            } elseif (!$user->last_activity_date?->isToday()) {
-                $user->update(['current_streak' => 1]);
+            // 2. Record Detailed Answers for Learning Intelligence
+            foreach ($this->submittedAnswers as $ans) {
+                QuizAttemptAnswer::create([
+                    'quiz_attempt_id' => $attempt->id,
+                    'question_id' => $ans['question_id'],
+                    'category_id' => $ans['category_id'],
+                    'selected_option_key' => $ans['selected_option_key'],
+                    'is_correct' => $ans['is_correct'],
+                ]);
             }
-            $user->update(['last_activity_date' => now()]);
 
-            // Synchronize with Central Server & Redis
+            // 3. Handle Daily Challenge Completion
+            if ($this->challenge === 'today') {
+                $dailyChallenge = DailyChallenge::where('challenge_date', now()->toDateString())->first();
+                if ($dailyChallenge) {
+                    UserChallengeParticipation::firstOrCreate(
+                        ['user_id' => $user->id, 'daily_challenge_id' => $dailyChallenge->id],
+                        [
+                            'score' => $this->totalScore,
+                            'xp_earned' => $dailyChallenge->xp_reward ?? 50,
+                            'completed_at' => now(),
+                        ]
+                    );
+                }
+            }
+
+            // 4. Compute XP & Update Formation Streak
+            $xpToAward = match (true) {
+                $this->challenge === 'today' => 50,
+                $this->mode === 'ranked' => (int) max(10, round($this->totalScore / 15)),
+                default => 10, // Practice mode
+            };
+
+            $xpResult = app(GamificationService::class)->awardXp(
+                $user,
+                $xpToAward,
+                "Completed Quiz Attempt",
+                'quiz_attempt',
+                (string) $attempt->id
+            );
+            app(StreakService::class)->recordFormationActivity($user);
+            $this->xpEarned = $xpResult['xp_gained'] ?? $xpToAward;
+
+            // 5. Compute Mastered vs Weak topics for Results Screen
+            $intelligence = app(LearningIntelligenceService::class)->analyzePerformance($user);
+            $this->masteredTopics = $intelligence['mastered'];
+            $this->weakTopics = $intelligence['weak'];
+
+            // 6. Push sync to server
             app(OfflineSyncService::class)->syncAttemptToServer($attempt);
         }
     }
@@ -195,6 +279,6 @@ class QuizRunner extends Component
 
     public function render()
     {
-        return view('livewire.quiz-runner')->layout('components.layouts.app', ['title' => 'Quiz Arena • Diocese of Livingstone']);
+        return view('livewire.quiz-runner')->layout('components.layouts.app', ['title' => 'Formation Arena • Livingstone Diocese']);
     }
 }

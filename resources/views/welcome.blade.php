@@ -1,50 +1,52 @@
 <x-layouts.app>
-    <div class="space-y-6">
-        <!-- Hero Banner -->
-        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 p-6 text-slate-950 shadow-2xl shadow-amber-500/10">
-            <div class="relative z-10">
-                <span class="inline-block px-3 py-1 rounded-full bg-slate-950/20 text-slate-950 text-xs font-black uppercase tracking-wider mb-2">
-                    2026 Diocesan Youth Rally
-                </span>
-                <h2 class="text-2xl font-black leading-tight tracking-tight">Faith Formation &amp; Catechism Competition</h2>
-                <p class="mt-2 text-sm font-semibold text-slate-900 leading-snug">
-                    Master Scripture, YOUCAT, DOCAT, and Church Traditions. Climb the Livingstone Diocesan Leaderboard!
-                </p>
-                <div class="mt-4 flex items-center gap-3">
-                    <a href="/quiz/1" class="px-5 py-2.5 rounded-2xl bg-slate-950 text-amber-400 font-extrabold text-sm shadow-xl hover:bg-slate-900 transition-transform active:scale-95">
-                        Start Quick Quiz
-                    </a>
-                </div>
+    <div class="space-y-5">
+        <!-- Banner -->
+        <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-3">
+            <span class="inline-block px-2.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase tracking-wider border border-purple-200 dark:border-purple-800">
+                Faith Formation &amp; Catechetical Library
+            </span>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white leading-tight">Livingstone Diocese Catholic Youth Platform</h2>
+            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
+                Master Holy Scripture, YOUCAT, DOCAT, African Church History, and Liturgical Traditions.
+            </p>
+            <div class="pt-1">
+                <a href="/quiz" class="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg transition-colors touch-press">
+                    <span>Enter Quiz Arena</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
+                </a>
             </div>
-            <div class="absolute -right-6 -bottom-6 w-36 h-36 bg-white/10 rounded-full blur-2xl"></div>
         </div>
 
         <!-- Categories & Study Tracks -->
-        <div>
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-base font-extrabold text-white">Study Tracks &amp; Quiz Categories</h3>
-                <span class="text-xs text-amber-400 font-semibold">5 Tracks Active</span>
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Formation Tracks</h3>
+                <span class="text-xs text-purple-600 dark:text-purple-400 font-semibold">Active Curriculum</span>
             </div>
 
-            <div class="grid grid-cols-1 gap-3">
+            <div class="space-y-2">
                 @php
                     $categories = \App\Models\Category::withCount('questions')->orderBy('display_order')->get();
                 @endphp
 
                 @foreach($categories as $category)
-                    <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition-all group flex items-center justify-between">
-                        <div class="flex items-center gap-3.5">
-                            <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-amber-400 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
-                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l-10-5v9l10 5 10-5V6l-10 5z"/></svg>
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors flex items-center justify-between group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                </svg>
                             </div>
                             <div>
-                                <h4 class="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">{{ $category->name }}</h4>
-                                <p class="text-xs text-slate-400 line-clamp-1">{{ $category->description }}</p>
-                                <span class="text-[11px] font-semibold text-slate-500">{{ $category->questions_count }} Questions loaded</span>
+                                <h4 class="text-xs font-bold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{{ $category->name }}</h4>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">{{ $category->description }}</p>
+                                <span class="text-[10px] text-slate-400 font-medium">{{ $category->questions_count }} Questions loaded</span>
                             </div>
                         </div>
-                        <a href="/quiz/{{ $category->id }}" class="px-3.5 py-2 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-950 font-bold text-xs transition-all">
-                            Play
+                        <a href="/quiz/play/{{ $category->id }}?mode=practice" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-purple-600 hover:text-white text-slate-700 dark:text-slate-300 font-semibold text-xs transition-colors">
+                            Study
                         </a>
                     </div>
                 @endforeach

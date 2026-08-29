@@ -24,11 +24,14 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'role',
         'status',
+        'xp',
+        'level',
+        'current_streak',
+        'longest_streak',
+        'last_activity_date',
         'approved_by',
         'approved_at',
         'rejection_reason',
-        'current_streak',
-        'last_activity_date',
     ];
 
     protected $hidden = [
@@ -42,6 +45,10 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'approved_at' => 'datetime',
             'last_activity_date' => 'date',
+            'xp' => 'integer',
+            'level' => 'integer',
+            'current_streak' => 'integer',
+            'longest_streak' => 'integer',
         ];
     }
 
@@ -88,5 +95,25 @@ class User extends Authenticatable implements FilamentUser
     public function questionReports(): HasMany
     {
         return $this->hasMany(QuestionReport::class);
+    }
+
+    public function lessonProgress(): HasMany
+    {
+        return $this->hasMany(LessonProgress::class);
+    }
+
+    public function flashcardReviews(): HasMany
+    {
+        return $this->hasMany(FlashcardReview::class);
+    }
+
+    public function challengeParticipations(): HasMany
+    {
+        return $this->hasMany(UserChallengeParticipation::class);
+    }
+
+    public function achievements(): HasMany
+    {
+        return $this->hasMany(UserAchievement::class);
     }
 }

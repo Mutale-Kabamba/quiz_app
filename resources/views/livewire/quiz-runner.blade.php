@@ -26,90 +26,93 @@
 
     @if(!$quizFinished && count($questions) > 0)
         <!-- TOP APP BAR & LEVEL BADGE -->
-        <div class="flex items-center justify-between mb-3">
-            <a href="/" class="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-white transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                <span>Exit</span>
+        <div class="flex items-center justify-between mb-4">
+            <a href="/quiz" class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>Exit Quiz</span>
             </a>
 
-            <!-- Level & Mode Badge -->
-            <div class="flex items-center gap-1.5">
-                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider {{ $mode === 'ranked' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' }}">
-                    {{ ucfirst($mode) }} &bull; Level {{ $level }}
+            <!-- Mode / Track Badge -->
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                    {{ $challenge === 'today' ? 'Daily Challenge' : ucfirst($mode) . ' • Level ' . $level }}
                 </span>
                 <button 
                     type="button"
                     wire:click="$set('showReportModal', true)"
-                    class="p-1 rounded-lg text-slate-500 hover:text-amber-400 transition-colors"
+                    class="p-1 rounded-md text-slate-400 hover:text-amber-500 transition-colors"
                     title="Report question issue">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
                 </button>
             </div>
         </div>
 
-        <!-- PROGRESS BAR & TIMER HEADER -->
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl mb-4">
-            <div class="flex items-center justify-between mb-2.5">
+        <!-- PROGRESS & TIMER BAR (FLAT M3) -->
+        <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 mb-4 space-y-2">
+            <div class="flex items-center justify-between text-xs">
                 <div>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Question Progress</span>
-                    <p class="text-sm font-black text-white font-display">
-                        {{ $currentIndex + 1 }} <span class="text-slate-500 font-normal">of {{ count($questions) }}</span>
-                    </p>
+                    <span class="text-slate-400 font-medium block text-[10px] uppercase tracking-wider">Question Progress</span>
+                    <span class="font-bold text-slate-900 dark:text-white text-sm">
+                        {{ $currentIndex + 1 }} <span class="text-slate-400 font-normal">of {{ count($questions) }}</span>
+                    </span>
                 </div>
 
-                <!-- Animated Circular Timer -->
-                <div class="flex items-center gap-2">
-                    <div class="relative w-11 h-11 flex items-center justify-center rounded-full border-4 transition-colors"
-                         :class="{
-                            'border-emerald-500 text-emerald-400 shadow-glow-emerald': timeLeft > 8,
-                            'border-amber-500 text-amber-400 shadow-glow-gold': timeLeft <= 8 && timeLeft > 4,
-                            'border-rose-500 text-rose-400 animate-pulse': timeLeft <= 4
-                         }">
-                        <span class="text-sm font-black font-display" x-text="timeLeft"></span>
-                    </div>
+                <!-- Timer Indicator -->
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono text-xs font-bold transition-colors"
+                     :class="{
+                        'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800': timeLeft > 8,
+                        'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800': timeLeft <= 8 && timeLeft > 4,
+                        'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800': timeLeft <= 4
+                     }">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span x-text="timeLeft + 's'"></span>
                 </div>
 
-                <!-- Score Counter -->
+                <!-- Score Points -->
                 <div class="text-right">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Points</span>
-                    <p class="text-sm font-black text-amber-400 font-display">+{{ $totalScore }}</p>
+                    <span class="text-slate-400 font-medium block text-[10px] uppercase tracking-wider">Score</span>
+                    <span class="font-bold text-purple-600 dark:text-purple-400 text-sm">+{{ $totalScore }}</span>
                 </div>
             </div>
 
-            <!-- Linear Bar Indicator -->
-            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden p-0.5 border border-slate-800">
-                <div class="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-300"
+            <!-- Linear Progress Indicator -->
+            <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div class="h-full bg-purple-600 dark:bg-purple-500 rounded-full transition-all duration-300"
                      style="width: {{ (($currentIndex + 1) / count($questions)) * 100 }}%"></div>
             </div>
         </div>
 
-        <!-- QUESTION CARD -->
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl mb-4">
-            <!-- Category Citation Pill -->
-            <div class="mb-3">
-                <span class="inline-block px-2.5 py-0.5 rounded-lg bg-amber-500/10 text-amber-400 font-extrabold text-[10px] uppercase tracking-wider">
-                    {{ $questions[$currentIndex]['category_name'] }}
-                </span>
-            </div>
+        <!-- QUESTION STATEMENT CARD -->
+        <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-5 mb-4 space-y-4">
+            <!-- Category Tag -->
+            <span class="inline-block px-2.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 font-bold text-[10px] uppercase tracking-wider">
+                {{ $questions[$currentIndex]['category_name'] }}
+            </span>
 
-            <h2 class="text-base font-extrabold text-white leading-relaxed font-display mb-5">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white leading-relaxed">
                 {{ $questions[$currentIndex]['question_text'] }}
             </h2>
 
-            <!-- 4 TOUCHABLE OPTION BUTTONS -->
+            <!-- 4 TOUCHABLE OPTION BUTTONS (ACCESSIBLE + VISUAL STATES) -->
             <div class="space-y-2.5">
                 @foreach($questions[$currentIndex]['options'] as $key => $optionText)
                     @php
-                        $btnStyle = 'w-full p-3.5 rounded-2xl font-bold border-2 transition-all flex items-center justify-between text-left touch-press text-xs ';
+                        $baseStyle = 'w-full p-3.5 rounded-xl border text-left flex items-center justify-between text-xs transition-colors touch-press font-medium ';
                         if (!$isAnswerSubmitted) {
-                            $btnStyle .= 'border-slate-800 bg-slate-950/80 hover:border-amber-500/60 hover:bg-slate-950 text-slate-200';
+                            $baseStyle .= 'bg-white dark:bg-[#121826] border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:border-purple-400 hover:bg-purple-50/40 dark:hover:bg-purple-950/20';
                         } else {
                             if ($key === $questions[$currentIndex]['correct_option_key']) {
-                                $btnStyle .= 'border-emerald-500 bg-emerald-950/40 text-emerald-300 shadow-glow-emerald';
+                                $baseStyle .= 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500 text-emerald-800 dark:text-emerald-200 font-semibold';
                             } elseif ($selectedOption === $key) {
-                                $btnStyle .= 'border-rose-500 bg-rose-950/40 text-rose-300';
+                                $baseStyle .= 'bg-red-50 dark:bg-red-950/30 border-red-500 text-red-800 dark:text-red-200 font-semibold';
                             } else {
-                                $btnStyle .= 'border-slate-800/60 bg-slate-950/40 text-slate-500 opacity-40';
+                                $baseStyle .= 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-400 opacity-60';
                             }
                         }
                     @endphp
@@ -119,9 +122,9 @@
                         wire:click="submitAnswer('{{ $key }}')" 
                         @click="triggerHaptic()"
                         @disabled($isAnswerSubmitted)
-                        class="{{ $btnStyle }}">
+                        class="{{ $baseStyle }}">
                         <span class="flex items-center gap-3">
-                            <span class="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black {{ $isAnswerSubmitted && $key === $questions[$currentIndex]['correct_option_key'] ? 'bg-emerald-500 text-slate-950' : ($isAnswerSubmitted && $selectedOption === $key ? 'bg-rose-500 text-white' : 'bg-slate-800 text-amber-400') }}">
+                            <span class="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold {{ $isAnswerSubmitted && $key === $questions[$currentIndex]['correct_option_key'] ? 'bg-emerald-600 text-white' : ($isAnswerSubmitted && $selectedOption === $key ? 'bg-red-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300') }}">
                                 {{ $key }}
                             </span>
                             <span class="leading-snug">{{ $optionText }}</span>
@@ -129,9 +132,13 @@
 
                         @if($isAnswerSubmitted)
                             @if($key === $questions[$currentIndex]['correct_option_key'])
-                                <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                </svg>
                             @elseif($selectedOption === $key)
-                                <svg class="w-5 h-5 text-rose-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+                                <svg class="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
                             @endif
                         @endif
                     </button>
@@ -139,16 +146,18 @@
             </div>
         </div>
 
-        <!-- CATECHETICAL EXPLANATION & CITATION CARD -->
+        <!-- CATECHETICAL EXPLANATION & CITATION FEEDBACK -->
         @if($isAnswerSubmitted)
-            <div class="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-4 mb-4 animate-fade-in">
-                <div class="flex items-center gap-2 text-amber-300 font-extrabold text-xs mb-1.5">
-                    <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
-                    <span>Catechetical Reference &amp; Explanation</span>
+            <div class="bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50 rounded-xl p-4 mb-4 space-y-2">
+                <div class="flex items-center gap-2 text-purple-800 dark:text-purple-300 font-bold text-xs">
+                    <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Teaching Note &amp; Reference</span>
                 </div>
-                <p class="text-xs text-slate-300 leading-relaxed">{{ $questions[$currentIndex]['explanation'] }}</p>
+                <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{{ $questions[$currentIndex]['explanation'] }}</p>
                 @if(!empty($questions[$currentIndex]['reference_citation']))
-                    <div class="mt-2 inline-block px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                    <div class="inline-block px-2 py-0.5 bg-white dark:bg-[#121826] text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded text-[10px] font-bold uppercase tracking-wider">
                         {{ $questions[$currentIndex]['reference_citation'] }}
                     </div>
                 @endif
@@ -158,70 +167,92 @@
             <button 
                 type="button"
                 wire:click="nextQuestion" 
-                class="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-2xl shadow-glow-gold transition-all text-sm touch-press">
-                {{ $currentIndex + 1 === count($questions) ? 'Finish & Save Score' : 'Next Question &rarr;' }}
+                class="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors text-xs uppercase tracking-wider touch-press">
+                {{ $currentIndex + 1 === count($questions) ? 'Complete Quiz & View Results' : 'Next Question →' }}
             </button>
         @endif
 
     @elseif($quizFinished)
-        <!-- FINAL CELEBRATION / PODIUM SCREEN -->
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center">
-            <div class="w-20 h-20 bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 rounded-3xl flex items-center justify-center mx-auto mb-3 shadow-glow-gold">
-                <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+        <!-- FINAL SMART RESULTS & LEARNING INTELLIGENCE SCREEN -->
+        <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-6 text-center space-y-4">
+            <div class="w-12 h-12 bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center mx-auto border border-purple-200 dark:border-purple-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                </svg>
             </div>
             
-            <h2 class="text-2xl font-black font-display text-white mb-0.5">Quiz Finished!</h2>
-            <p class="text-xs text-slate-400 mb-5">Livingstone Diocese Catechism Challenge</p>
+            <div>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Quiz Completed</h2>
+                <p class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1">+{{ $xpEarned }} XP Earned &bull; Formation Streak Advanced</p>
+            </div>
 
-            <!-- STATS GRID -->
-            <div class="grid grid-cols-3 gap-2.5 bg-slate-950 p-3.5 rounded-2xl border border-slate-800 mb-5">
+            <!-- STATS GRID (FLAT) -->
+            <div class="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200 dark:border-slate-800 text-center">
                 <div>
-                    <span class="text-[10px] text-slate-400 block font-bold uppercase">Points</span>
-                    <span class="text-lg font-black text-amber-400 font-display">{{ $totalScore }}</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold uppercase">Points</span>
+                    <span class="text-sm font-bold text-purple-600 dark:text-purple-400">+{{ $totalScore }}</span>
                 </div>
                 <div>
-                    <span class="text-[10px] text-slate-400 block font-bold uppercase">Accuracy</span>
-                    <span class="text-lg font-black text-emerald-400 font-display">{{ $correctCount }}/{{ count($questions) }}</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold uppercase">Accuracy</span>
+                    <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400">{{ $correctCount }}/{{ count($questions) }}</span>
                 </div>
                 <div>
-                    <span class="text-[10px] text-slate-400 block font-bold uppercase">Duration</span>
-                    <span class="text-lg font-black text-slate-200 font-display">{{ $totalTimeTaken }}s</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold uppercase">Duration</span>
+                    <span class="text-sm font-bold text-slate-700 dark:text-slate-300">{{ $totalTimeTaken }}s</span>
                 </div>
             </div>
 
-            <div class="space-y-2">
-                <a href="/leaderboard" class="block w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-2xl shadow-glow-gold text-xs uppercase tracking-wider touch-press">
-                    View Diocesan Leaderboard &rarr;
+            <!-- FOCUS AREAS / WEAK TOPICS -->
+            @if(!empty($weakTopics))
+                <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-left space-y-1">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                        Recommended Review
+                    </span>
+                    <p class="text-xs text-slate-600 dark:text-slate-300">
+                        Consider reviewing <span class="font-semibold text-slate-900 dark:text-white">{{ $weakTopics[0]['name'] }}</span> to strengthen your understanding before the next competition.
+                    </p>
+                </div>
+            @endif
+
+            <div class="space-y-2 pt-2 text-xs">
+                @if($mode === 'ranked')
+                    <a href="/leaderboard" class="block w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors touch-press">
+                        View Diocesan Leaderboard &rarr;
+                    </a>
+                @endif
+
+                <a href="/quiz" class="block w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-colors">
+                    Try Another Quiz
                 </a>
-                <a href="/" class="block w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-2xl text-xs">
+                <a href="/" class="block w-full py-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium">
                     Return to Dashboard
                 </a>
             </div>
         </div>
     @else
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center">
-            <p class="text-sm font-semibold text-slate-400">No active questions available in this study track yet.</p>
-            <a href="/" class="mt-4 inline-block px-4 py-2 bg-amber-500 text-slate-950 rounded-xl font-bold text-xs">Return Home</a>
+        <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center space-y-3">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">No active questions available in this track yet.</p>
+            <a href="/" class="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold text-xs">Return Home</a>
         </div>
     @endif
 
     <!-- REPORT QUESTION DISPUTE MODAL -->
     @if($showReportModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-xs w-full shadow-2xl space-y-3">
+            <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl p-5 max-w-xs w-full space-y-3 shadow-xl">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-black text-white font-display">Report Question Issue</h3>
-                    <button wire:click="$set('showReportModal', false)" class="text-slate-400 hover:text-white">&times;</button>
+                    <h3 class="text-xs font-bold text-slate-900 dark:text-white">Report Question Issue</h3>
+                    <button wire:click="$set('showReportModal', false)" class="text-slate-400 hover:text-slate-600 text-sm font-bold">&times;</button>
                 </div>
 
                 @if($reportSubmitted)
-                    <div class="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-xs text-emerald-400 text-center font-bold">
-                        Report submitted to Diocesan Admins for review!
+                    <div class="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs text-emerald-700 dark:text-emerald-300 text-center font-semibold">
+                        Report submitted to Diocesan Content Reviewers!
                     </div>
                 @else
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-300 mb-1">Issue Type</label>
-                        <select wire:model="reportType" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white">
+                        <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Issue Type</label>
+                        <select wire:model="reportType" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white">
                             <option value="wrong_answer">Wrong Answer Key</option>
                             <option value="typo">Typo in Question / Options</option>
                             <option value="bad_reference">Incorrect Scripture / YOUCAT citation</option>
@@ -230,14 +261,14 @@
                     </div>
 
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-300 mb-1">Notes / Details</label>
-                        <textarea wire:model="reportNotes" rows="2" placeholder="Briefly describe what is wrong..." class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"></textarea>
+                        <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Notes</label>
+                        <textarea wire:model="reportNotes" rows="2" placeholder="Briefly describe what is wrong..." class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"></textarea>
                     </div>
 
                     <button 
-                        type="button"
+                        type="button" 
                         wire:click="submitReport" 
-                        class="w-full py-2.5 bg-rose-500 text-white font-bold rounded-xl text-xs">
+                        class="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-xs transition-colors">
                         Submit Audit Report
                     </button>
                 @endif
