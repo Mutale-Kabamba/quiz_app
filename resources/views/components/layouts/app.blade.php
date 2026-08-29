@@ -2,10 +2,11 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full antialiased">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#5B21B6">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Catholic Youth">
     <meta name="application-name" content="Catholic Youth">
     
@@ -72,6 +73,26 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
+        /* Mobile Safe Area Insets for iOS & Android Status Bars / Dynamic Islands / Home Indicators */
+        :root {
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+        }
+
+        .safe-top-header {
+            padding-top: max(0.875rem, env(safe-area-inset-top, 0px));
+        }
+
+        .safe-bottom-nav {
+            padding-bottom: max(0.625rem, env(safe-area-inset-bottom, 0px));
+        }
+
+        .safe-container {
+            padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+        }
+
         /* Minimal Progress Animation for Preloader */
         @keyframes progressIndeterminate {
             0% { transform: translateX(-100%) scaleX(0.2); }
@@ -215,11 +236,11 @@
     </script>
 
     <!-- Mobile-First Container (Max Width MD for App Feel, clean border for desktop view) -->
-    <div class="max-w-md w-full mx-auto min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F19] flex flex-col justify-between relative border-x border-slate-200/80 dark:border-slate-800/80 {{ auth()->check() ? 'pb-24' : 'pb-6' }}">
+    <div class="max-w-md w-full mx-auto min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F19] flex flex-col justify-between relative border-x border-slate-200/80 dark:border-slate-800/80 {{ auth()->check() ? 'safe-container' : 'pb-6' }}">
 
         @auth
             <!-- CATHOLIC DIOCESAN HEADER (RICH MINIMALISM) -->
-            <header class="sticky top-0 z-40 bg-white/95 dark:bg-[#121826]/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800/90 px-4 py-2.5 transition-all">
+            <header class="sticky top-0 z-40 bg-white/95 dark:bg-[#121826]/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800/90 px-4 pb-2.5 safe-top-header transition-all">
                 <div class="flex items-center justify-between">
                     <!-- Diocesan Seal & Parish Identity -->
                     <a href="/" class="flex items-center gap-2.5 group">
@@ -401,7 +422,7 @@
 
         @auth
             <!-- BOTTOM NAVIGATION BAR (RICH MINIMALISM) -->
-            <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#121826]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800/90 max-w-md mx-auto px-3 py-2 transition-all">
+            <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#121826]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800/90 max-w-md mx-auto px-3 pt-2 safe-bottom-nav transition-all">
                 <div class="flex items-center justify-around">
                     <!-- Tab 1: Home -->
                     <a href="/" class="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl transition-all touch-press {{ request()->is('/') ? 'text-purple-600 dark:text-purple-400 font-bold' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium' }}">

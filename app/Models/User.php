@@ -40,11 +40,15 @@ class User extends Authenticatable implements FilamentUser
         'preferences',
         'last_password_changed_at',
         'deactivated_at',
+        'biometric_token_hash',
+        'biometric_credential_id',
+        'biometric_enabled_at',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'biometric_token_hash',
     ];
 
     protected function casts(): array
@@ -56,6 +60,7 @@ class User extends Authenticatable implements FilamentUser
             'dob' => 'date',
             'last_password_changed_at' => 'datetime',
             'deactivated_at' => 'datetime',
+            'biometric_enabled_at' => 'datetime',
             'preferences' => 'array',
             'xp' => 'integer',
             'level' => 'integer',
@@ -182,5 +187,52 @@ class User extends Authenticatable implements FilamentUser
     public function latestPendingTransfer(): HasOne
     {
         return $this->hasOne(ParishTransfer::class)->where('status', 'pending')->latestOfMany();
+    }
+
+    /**
+     * Check if user has biometric login enabled.
+     */
+    public function hasBiometricEnabled(): bool
+    {
+        return !empty($this->biometric_token_hash) && $this->biometric_enabled_at !== null;
+    }
+
+    /**
+     * Generate a new cryptographically secure biometric token and store its hash.
+     */
+    public function generateBiometricToken(?string $credentialId = null): string
+    {
+        $rawToken = bin2hex(random_bytes(32));
+        $this->update([
+            'biometric_token_hash' => hash('sha256', $rawToken),
+            'biometric_credential_id' => $credentialId,
+            'biometric_enabled_at' => now(),
+        ]);
+
+        return $rawToken;
+    }
+
+    /**
+     * Verify a supplied biometric token against the stored hash.
+     */
+    public function verifyBiometricToken(string $token): bool
+    {
+        if (!$this->hasBiometricEnabled()) {
+            return false;
+        }
+
+        return hash_equals($this->biometric_token_hash, hash('sha256', $token));
+    }
+
+    /**
+     * Revoke and disable biometric authentication.
+     */
+    public function disableBiometrics(): void
+    {
+        $this->update([
+            'biometric_token_hash' => null,
+            'biometric_credential_id' => null,
+            'biometric_enabled_at' => null,
+        ]);
     }
 }

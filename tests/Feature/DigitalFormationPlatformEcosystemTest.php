@@ -91,6 +91,18 @@ class DigitalFormationPlatformEcosystemTest extends TestCase
         ]);
     }
 
+    public function test_user_can_view_and_complete_micro_lesson_in_viewer(): void
+    {
+        $service = app(MicroLearningService::class);
+        $microLesson = $service->getTodayMicroLesson($this->user);
+
+        $response = $this->actingAs($this->user)->get("/lesson/{$microLesson->id}");
+        $response->assertStatus(200);
+        $response->assertSee($microLesson->title);
+        $response->assertSee('Catechetical Reflection & Doctrine');
+        $response->assertSee('Mark Lesson as Completed');
+    }
+
     public function test_spaced_review_service_schedules_mistakes_and_advances_intervals(): void
     {
         $service = app(SpacedReviewService::class);

@@ -6,28 +6,33 @@
     @if($user->isSuperAdmin())
         <div class="space-y-5">
             <!-- DIOCESAN HERO HEADER -->
-            <div class="p-5 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-4">
-                <div class="flex items-start justify-between">
-                    <div class="space-y-1">
-                        <div class="flex items-center gap-2">
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                                Diocesan Curia &bull; Executive Command
-                            </span>
-                            <span class="text-[11px] text-slate-400 font-medium">{{ $liturgicalContext['season'] }}</span>
-                        </div>
-                        <h2 class="text-xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">
-                            Livingstone Diocese Headquarters
-                        </h2>
-                        <p class="text-xs text-slate-500">Administrator: {{ $user->name }} &bull; Pastoral Territory</p>
+            <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-3.5 shadow-xs">
+                <div class="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-2.5">
+                    <div class="flex items-center gap-2 flex-wrap min-w-0">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 whitespace-nowrap">
+                            Diocesan Curia
+                        </span>
+                        <span class="text-[11px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap flex items-center gap-1">
+                            <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                            {{ $liturgicalContext['season'] }}
+                        </span>
                     </div>
-                    <a href="/diocese" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors touch-press flex items-center gap-1.5 shadow-sm">
-                        <span>Curia Hub</span>
+
+                    <a href="/diocese" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all touch-press flex items-center gap-1 shadow-xs whitespace-nowrap flex-shrink-0">
+                        <span>Command Center</span>
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </a>
                 </div>
 
+                <div class="space-y-0.5">
+                    <h2 class="text-lg sm:text-xl font-bold font-serif text-slate-900 dark:text-white tracking-tight leading-snug">
+                        Livingstone Diocese Headquarters
+                    </h2>
+                    <p class="text-xs text-slate-500">Administrator: <span class="font-medium text-slate-700 dark:text-slate-300">{{ $user->name }}</span> &bull; Pastoral Territory</p>
+                </div>
+
                 <!-- QUICK CURIA SHORTCUTS -->
-                <div class="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-center">
+                <div class="grid grid-cols-4 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80 text-center">
                     <a href="/diocese" class="p-2.5 rounded-xl bg-slate-50 hover:bg-purple-50/50 dark:bg-slate-900/60 dark:hover:bg-purple-950/20 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 transition-colors touch-press">
                         <svg class="w-4 h-4 mx-auto text-purple-600 dark:text-purple-400 mb-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                         <span class="text-[10px] font-bold block leading-none">Parishes</span>
@@ -123,28 +128,35 @@
     @elseif($user->isChairperson())
         <div class="space-y-5">
             <!-- PARISH EXECUTIVE BANNER -->
-            <div class="p-5 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-4">
-                <div class="flex items-start justify-between">
-                    <div class="space-y-1">
-                        <div class="flex items-center gap-2">
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                                Parish Youth Ministry
+            <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-3.5 shadow-xs">
+                <div class="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-2.5">
+                    <div class="flex items-center gap-2 flex-wrap min-w-0">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 whitespace-nowrap">
+                            Parish Youth Ministry
+                        </span>
+                        @if($parish->deanery)
+                            <span class="text-[11px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap flex items-center gap-1">
+                                <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                                {{ $parish->deanery->name }}
                             </span>
-                            <span class="text-[11px] text-slate-400 font-medium">{{ $parish->deanery?->name }}</span>
-                        </div>
-                        <h2 class="text-xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">
-                            {{ $parish->name }}
-                        </h2>
-                        <p class="text-xs text-slate-500">Chairperson: {{ $user->name }} &bull; Roster Management</p>
+                        @endif
                     </div>
-                    <a href="/parish" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors touch-press flex items-center gap-1.5 shadow-sm">
+
+                    <a href="/parish" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all touch-press flex items-center gap-1 shadow-xs whitespace-nowrap flex-shrink-0">
                         <span>Parish Desk</span>
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </a>
                 </div>
 
+                <div class="space-y-0.5">
+                    <h2 class="text-lg sm:text-xl font-bold font-serif text-slate-900 dark:text-white tracking-tight leading-snug">
+                        {{ $parish->name }}
+                    </h2>
+                    <p class="text-xs text-slate-500">Chairperson: <span class="font-medium text-slate-700 dark:text-slate-300">{{ $user->name }}</span> &bull; Roster Management</p>
+                </div>
+
                 <!-- QUICK SHORTCUTS -->
-                <div class="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-center">
+                <div class="grid grid-cols-4 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80 text-center">
                     <a href="/parish" class="p-2.5 rounded-xl bg-slate-50 hover:bg-purple-50/50 dark:bg-slate-900/60 dark:hover:bg-purple-950/20 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 transition-colors touch-press">
                         <span class="text-[10px] font-bold block">+ Member</span>
                     </a>

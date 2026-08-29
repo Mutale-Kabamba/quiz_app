@@ -51,4 +51,46 @@ class MicroLesson extends Model
     {
         return $this->hasMany(UserMicroLessonCompletion::class, 'micro_lesson_id');
     }
+
+    public function getSubheadingAttribute(): ?string
+    {
+        return $this->hook_question;
+    }
+
+    public function getEstimatedReadMinutesAttribute(): int
+    {
+        return $this->read_time_minutes ?? 4;
+    }
+
+    public function getDifficultyAttribute(): int
+    {
+        return 1;
+    }
+
+    public function getScriptureCitationsAttribute(): ?string
+    {
+        return $this->reference_citation;
+    }
+
+    public function getSummaryTakeawaysAttribute(): array
+    {
+        return $this->takeaways ?? [];
+    }
+
+    public function getContentSectionsAttribute(): array
+    {
+        return [
+            [
+                'heading' => 'Catechetical Reflection & Doctrine',
+                'body' => $this->content_body,
+                'scripture_quote' => null,
+                'catechism_quote' => $this->reference_citation,
+            ]
+        ];
+    }
+
+    public function getReflectionQuestionAttribute(): ?string
+    {
+        return $this->hook_question;
+    }
 }

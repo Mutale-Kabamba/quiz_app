@@ -60,6 +60,7 @@ class Profile extends Component
     public bool $showAvatarInRankings = true;
     public bool $showNameInRankings = true;
     public bool $showParishInRankings = true;
+    public bool $biometricEnabled = false;
 
     // Notifications / Toasts
     public ?string $successMessage = null;
@@ -80,6 +81,7 @@ class Profile extends Component
         $this->email = $user->email ?? '';
         $this->dob = $user->dob ? $user->dob->format('Y-m-d') : null;
         $this->gender = $user->gender ?? '';
+        $this->biometricEnabled = $user->hasBiometricEnabled();
 
         $prefs = $user->preferences ?? [];
         $this->notifyFormation = $prefs['notifications']['formation'] ?? true;
@@ -242,6 +244,58 @@ class Profile extends Component
         $this->newPasswordConfirmation = '';
         $this->showPasswordModal = false;
         $this->successMessage = 'Account password successfully updated.';
+    }
+
+    public function enableBiometrics(?string $credentialId = null)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return;
+        }
+
+        $rawToken = $user->generateBiometricToken($credentialId);
+        $this->biometricEnabled = true;
+
+        app(AuditLogService::class)->log(
+            'profile_biometrics_enabled',
+            $user,
+            null,
+            ['enabled_at' => now(), 'has_credential_id' => !empty($credentialId)],
+            $user
+        );
+
+        $this->dispatch('biometric-enrolled-on-device', [
+            'userId' => $user->id,
+            'name' => $user->name,
+            'avatar' => $user->avatar_url,
+            'parish' => $user->parish?->name,
+            'token' => $rawToken,
+            'credentialId' => $credentialId,
+        ]);
+
+        $this->successMessage = 'Biometric sign-in (Face ID / Fingerprint) successfully registered for this device.';
+    }
+
+    public function disableBiometrics()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return;
+        }
+
+        $user->disableBiometrics();
+        $this->biometricEnabled = false;
+
+        app(AuditLogService::class)->log(
+            'profile_biometrics_disabled',
+            $user,
+            null,
+            ['disabled_at' => now()],
+            $user
+        );
+
+        $this->dispatch('biometric-revoked-on-device');
+        $this->successMessage = 'Biometric sign-in has been disabled for this account.';
     }
 
     public function requestParishTransfer()

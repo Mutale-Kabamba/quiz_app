@@ -6,35 +6,56 @@ use App\Models\AuditLog;
 use App\Models\Category;
 use App\Models\Deanery;
 use App\Models\DiocesanCompetition;
+use App\Models\Lesson;
 use App\Models\Parish;
 use App\Models\ParishTransfer;
 use App\Models\Question;
+use App\Models\QuestionBankItem;
 use App\Models\QuizAttempt;
+use App\Models\TaxonomyTrack;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\DiocesanAnalyticsService;
+use App\Services\DynamicContentImportService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 
 class DioceseDashboard extends Component
 {
-    // Active Tab
-    public string $activeTab = 'overview'; // 'overview', 'parishes', 'admins', 'youth', 'questions', 'competitions', 'reports'
+    use WithFileUploads, WithPagination;
+
+    // Active Navigation Tab
+    public string $activeTab = 'overview'; // 'overview', 'deaneries', 'parishes', 'tracks', 'lessons', 'questions', 'competitions', 'admins', 'youth', 'reports'
 
     // Search & Filters
     public string $searchQuery = '';
     public ?int $selectedParishFilter = null;
+    public ?int $selectedDeaneryFilter = null;
+    public ?int $selectedCategoryFilter = null;
 
-    // Modals
+    // Global Modal Visibility Toggles
+    public bool $showDeaneryModal = false;
     public bool $showParishModal = false;
+    public bool $showTrackModal = false;
     public bool $showAdminModal = false;
     public bool $showQuestionModal = false;
+    public bool $showLessonModal = false;
     public bool $showCompetitionModal = false;
+    public bool $showImportModal = false;
     public bool $showReportModal = false;
 
-    // New Parish Form
+    // 1. Deanery Form (Create & Edit)
+    public ?int $editDeaneryId = null;
+    public string $deaneryName = '';
+    public string $deaneryCode = '';
+    public string $deaneryHeadquarters = '';
+
+    // 2. Parish Form (Create & Edit)
+    public ?int $editParishId = null;
     public string $newParishName = '';
     public string $newParishCode = '';
     public ?int $newParishDeaneryId = null;
@@ -42,15 +63,25 @@ class DioceseDashboard extends Component
     public string $newParishEmail = '';
     public string $newParishPhone = '';
 
-    // New Parish Admin Form
+    // 3. Track / Category Form (Create & Edit)
+    public ?int $editTrackId = null;
+    public string $trackName = '';
+    public string $trackSlug = '';
+    public string $trackDescription = '';
+    public string $trackIcon = 'cross';
+    public int $trackDisplayOrder = 1;
+
+    // 4. Parish Admin Form
     public string $newAdminName = '';
     public string $newAdminPhone = '';
     public string $newAdminEmail = '';
     public string $newAdminPassword = 'password';
     public ?int $newAdminParishId = null;
 
-    // New Question Form
+    // 5. Question Bank Form (Create & Edit)
+    public ?string $editQuestionId = null;
     public ?int $newQuestionCategoryId = null;
+    public ?int $newQuestionTrackId = null;
     public string $newQuestionText = '';
     public string $optionA = '';
     public string $optionB = '';
@@ -61,7 +92,21 @@ class DioceseDashboard extends Component
     public string $newQuestionCitation = '';
     public int $newQuestionLevel = 1;
 
-    // New Competition Form
+    // 6. Study Lesson Form (Create & Edit)
+    public ?string $editLessonId = null;
+    public ?int $lessonCategoryId = null;
+    public string $lessonTitle = '';
+    public string $lessonSubheading = '';
+    public string $lessonContent = '';
+    public string $lessonTakeaways = '';
+    public int $lessonReadMinutes = 5;
+    public int $lessonDifficulty = 1;
+    public string $lessonScripture = '';
+    public string $lessonCatechism = '';
+    public string $lessonStatus = 'published';
+
+    // 7. Rally & Competition Form (Create & Edit)
+    public ?string $editCompetitionId = null;
     public string $newCompTitle = '';
     public string $newCompDescription = '';
     public string $newCompType = 'diocesan';
@@ -70,6 +115,21 @@ class DioceseDashboard extends Component
     public string $newCompEndTime = '';
     public int $newCompTimeLimit = 300;
     public int $newCompQuestionCount = 15;
+
+    // 8. Dynamic File Import State for Questions (CSV, XLSX, JSON)
+    public $importFile = null;
+    public ?int $importTrackId = null;
+    public string $importDuplicateStrategy = 'skip'; // 'skip', 'overwrite'
+    public ?array $importResults = null;
+    public bool $isImporting = false;
+
+    // 9. Dynamic File Import State for Lessons (CSV, XLSX, JSON)
+    public bool $showLessonImportModal = false;
+    public $lessonImportFile = null;
+    public ?int $lessonImportCategoryId = null;
+    public string $lessonImportDuplicateStrategy = 'skip'; // 'skip', 'overwrite'
+    public ?array $lessonImportResults = null;
+    public bool $isLessonImporting = false;
 
     // Report Summary Data
     public ?array $reportSummary = null;
@@ -92,41 +152,304 @@ class DioceseDashboard extends Component
     public function setTab(string $tab)
     {
         $this->activeTab = $tab;
+        $this->resetPage();
+    }
+
+    // =========================================================================
+    // 1. DEANERY CRUD
+    // =========================================================================
+    public function openCreateDeaneryModal()
+    {
+        $this->reset(['editDeaneryId', 'deaneryName', 'deaneryCode', 'deaneryHeadquarters']);
+        $this->showDeaneryModal = true;
+    }
+
+    public function editDeanery(int $id)
+    {
+        $deanery = Deanery::findOrFail($id);
+        $this->editDeaneryId = $deanery->id;
+        $this->deaneryName = $deanery->name;
+        $this->deaneryCode = $deanery->code ?? '';
+        $this->deaneryHeadquarters = $deanery->headquarters ?? '';
+        $this->showDeaneryModal = true;
+    }
+
+    public function saveDeanery()
+    {
+        $rules = [
+            'deaneryName' => 'required|string|min:3|max:100',
+            'deaneryCode' => 'required|string|min:2|max:20|unique:deaneries,code,' . $this->editDeaneryId,
+            'deaneryHeadquarters' => 'nullable|string|max:100',
+        ];
+        $this->validate($rules);
+
+        if ($this->editDeaneryId) {
+            $deanery = Deanery::findOrFail($this->editDeaneryId);
+            $deanery->update([
+                'name' => $this->deaneryName,
+                'code' => strtoupper($this->deaneryCode),
+                'headquarters' => $this->deaneryHeadquarters ?: null,
+            ]);
+
+            app(AuditLogService::class)->log(
+                'deanery_updated',
+                $deanery,
+                null,
+                ['name' => $this->deaneryName, 'code' => $this->deaneryCode],
+                Auth::user()
+            );
+            $this->successMessage = "Deanery '{$deanery->name}' updated successfully!";
+        } else {
+            $deanery = Deanery::create([
+                'name' => $this->deaneryName,
+                'code' => strtoupper($this->deaneryCode),
+                'headquarters' => $this->deaneryHeadquarters ?: null,
+            ]);
+
+            app(AuditLogService::class)->log(
+                'deanery_created',
+                $deanery,
+                null,
+                ['name' => $this->deaneryName, 'code' => $this->deaneryCode],
+                Auth::user()
+            );
+            $this->successMessage = "Deanery '{$deanery->name}' created successfully!";
+        }
+
+        $this->reset(['editDeaneryId', 'deaneryName', 'deaneryCode', 'deaneryHeadquarters', 'showDeaneryModal']);
+    }
+
+    public function deleteDeanery(int $id)
+    {
+        $deanery = Deanery::withCount('parishes')->findOrFail($id);
+        if ($deanery->parishes_count > 0) {
+            $this->errorMessage = "Cannot delete '{$deanery->name}' because it contains {$deanery->parishes_count} parishes. Please reassign the parishes first.";
+            return;
+        }
+
+        app(AuditLogService::class)->log(
+            'deanery_deleted',
+            $deanery,
+            ['name' => $deanery->name],
+            null,
+            Auth::user()
+        );
+
+        $deanery->delete();
+        $this->successMessage = "Deanery '{$deanery->name}' deleted successfully.";
     }
 
     public function createParish()
     {
-        $this->validate([
+        return $this->saveParish();
+    }
+
+    public function createDeanery()
+    {
+        return $this->saveDeanery();
+    }
+
+    public function createTrack()
+    {
+        return $this->saveTrack();
+    }
+
+    // =========================================================================
+    // 2. PARISH CRUD
+    // =========================================================================
+    public function openCreateParishModal()
+    {
+        $this->reset(['editParishId', 'newParishName', 'newParishCode', 'newParishDeaneryId', 'newParishLocation', 'newParishEmail', 'newParishPhone']);
+        $this->showParishModal = true;
+    }
+
+    public function editParish(int $id)
+    {
+        $parish = Parish::findOrFail($id);
+        $this->editParishId = $parish->id;
+        $this->newParishName = $parish->name;
+        $this->newParishCode = $parish->code ?? '';
+        $this->newParishDeaneryId = $parish->deanery_id;
+        $this->newParishLocation = $parish->location ?? '';
+        $this->newParishEmail = $parish->contact_email ?? '';
+        $this->newParishPhone = $parish->contact_phone ?? '';
+        $this->showParishModal = true;
+    }
+
+    public function saveParish()
+    {
+        $rules = [
             'newParishName' => 'required|string|min:3|max:100',
-            'newParishCode' => 'required|string|min:2|max:20|unique:parishes,code',
+            'newParishCode' => 'required|string|min:2|max:20|unique:parishes,code,' . $this->editParishId,
             'newParishDeaneryId' => 'required|exists:deaneries,id',
             'newParishLocation' => 'nullable|string|max:100',
             'newParishEmail' => 'nullable|email|max:100',
             'newParishPhone' => 'nullable|string|max:20',
-        ]);
+        ];
+        $this->validate($rules);
 
-        $parish = Parish::create([
-            'deanery_id' => $this->newParishDeaneryId,
-            'name' => $this->newParishName,
-            'code' => strtoupper($this->newParishCode),
-            'location' => $this->newParishLocation ?: null,
-            'contact_email' => $this->newParishEmail ?: null,
-            'contact_phone' => $this->newParishPhone ?: null,
-            'is_active' => true,
-        ]);
+        if ($this->editParishId) {
+            $parish = Parish::findOrFail($this->editParishId);
+            $parish->update([
+                'deanery_id' => $this->newParishDeaneryId,
+                'name' => $this->newParishName,
+                'code' => strtoupper($this->newParishCode),
+                'location' => $this->newParishLocation ?: null,
+                'contact_email' => $this->newParishEmail ?: null,
+                'contact_phone' => $this->newParishPhone ?: null,
+            ]);
+
+            app(AuditLogService::class)->log(
+                'parish_updated',
+                $parish,
+                null,
+                ['name' => $this->newParishName, 'code' => $this->newParishCode],
+                Auth::user()
+            );
+            $this->successMessage = "Parish '{$parish->name}' updated successfully!";
+        } else {
+            $parish = Parish::create([
+                'deanery_id' => $this->newParishDeaneryId,
+                'name' => $this->newParishName,
+                'code' => strtoupper($this->newParishCode),
+                'location' => $this->newParishLocation ?: null,
+                'contact_email' => $this->newParishEmail ?: null,
+                'contact_phone' => $this->newParishPhone ?: null,
+                'is_active' => true,
+            ]);
+
+            app(AuditLogService::class)->log(
+                'parish_created',
+                $parish,
+                null,
+                ['name' => $this->newParishName, 'code' => $this->newParishCode],
+                Auth::user()
+            );
+            $this->successMessage = "Parish '{$parish->name}' registered successfully!";
+        }
+
+        $this->reset(['editParishId', 'newParishName', 'newParishCode', 'newParishDeaneryId', 'newParishLocation', 'newParishEmail', 'newParishPhone', 'showParishModal']);
+    }
+
+    public function deleteParish(int $id)
+    {
+        $parish = Parish::withCount('users')->findOrFail($id);
+        if ($parish->users_count > 0) {
+            $this->errorMessage = "Cannot delete '{$parish->name}' because it has {$parish->users_count} registered users. Please reassign the members first.";
+            return;
+        }
 
         app(AuditLogService::class)->log(
-            'parish_created',
+            'parish_deleted',
             $parish,
+            ['name' => $parish->name],
             null,
-            ['name' => $this->newParishName, 'code' => $this->newParishCode],
             Auth::user()
         );
 
-        $this->reset(['newParishName', 'newParishCode', 'newParishDeaneryId', 'newParishLocation', 'newParishEmail', 'newParishPhone', 'showParishModal']);
-        $this->successMessage = "Parish '{$parish->name}' registered successfully!";
+        $parish->delete();
+        $this->successMessage = "Parish '{$parish->name}' deleted successfully.";
     }
 
+    // =========================================================================
+    // 3. TRACK & CATEGORY CRUD
+    // =========================================================================
+    public function openCreateTrackModal()
+    {
+        $this->reset(['editTrackId', 'trackName', 'trackSlug', 'trackDescription', 'trackIcon', 'trackDisplayOrder']);
+        $this->showTrackModal = true;
+    }
+
+    public function editTrack(int $id)
+    {
+        $track = TaxonomyTrack::findOrFail($id);
+        $this->editTrackId = $track->id;
+        $this->trackName = $track->name;
+        $this->trackSlug = $track->slug ?? Str::slug($track->name);
+        $this->trackDescription = $track->description ?? '';
+        $this->trackIcon = $track->icon ?? 'cross';
+        $this->trackDisplayOrder = $track->display_order ?? 1;
+        $this->showTrackModal = true;
+    }
+
+    public function saveTrack()
+    {
+        $this->validate([
+            'trackName' => 'required|string|min:3|max:100',
+            'trackDescription' => 'nullable|string|max:500',
+            'trackIcon' => 'nullable|string|max:50',
+            'trackDisplayOrder' => 'required|integer|min:1',
+        ]);
+
+        $slug = Str::slug($this->trackName);
+        $code = strtoupper(Str::slug($this->trackName, '_'));
+
+        if ($this->editTrackId) {
+            $track = TaxonomyTrack::findOrFail($this->editTrackId);
+            $track->update([
+                'name' => $this->trackName,
+                'slug' => $slug,
+                'code' => $track->code ?: $code,
+                'description' => $this->trackDescription ?: null,
+                'icon' => $this->trackIcon ?: 'cross',
+                'display_order' => $this->trackDisplayOrder,
+            ]);
+
+            // Sync with category if exists
+            $category = Category::where('name', $track->name)->orWhere('slug', $track->slug)->first();
+            if ($category) {
+                $category->update([
+                    'name' => $this->trackName,
+                    'slug' => $slug,
+                    'description' => $this->trackDescription ?: null,
+                    'icon' => $this->trackIcon ?: 'cross',
+                ]);
+            }
+
+            $this->successMessage = "Track '{$track->name}' updated successfully!";
+        } else {
+            $track = TaxonomyTrack::create([
+                'name' => $this->trackName,
+                'slug' => $slug,
+                'code' => $code,
+                'description' => $this->trackDescription ?: null,
+                'icon' => $this->trackIcon ?: 'cross',
+                'display_order' => $this->trackDisplayOrder,
+                'is_active' => true,
+            ]);
+
+            Category::firstOrCreate(
+                ['slug' => $slug],
+                [
+                    'name' => $this->trackName,
+                    'description' => $this->trackDescription ?: null,
+                    'icon' => $this->trackIcon ?: 'cross',
+                    'order' => $this->trackDisplayOrder,
+                ]
+            );
+
+            $this->successMessage = "Track '{$track->name}' created successfully!";
+        }
+
+        $this->reset(['editTrackId', 'trackName', 'trackSlug', 'trackDescription', 'trackIcon', 'trackDisplayOrder', 'showTrackModal']);
+    }
+
+    public function deleteTrack(int $id)
+    {
+        $track = TaxonomyTrack::findOrFail($id);
+        $category = Category::where('name', $track->name)->orWhere('slug', $track->slug)->first();
+
+        $track->delete();
+        if ($category && $category->questions()->count() === 0) {
+            $category->delete();
+        }
+
+        $this->successMessage = "Track deleted successfully.";
+    }
+
+    // =========================================================================
+    // 4. PARISH ADMIN CRUD
+    // =========================================================================
     public function createParishAdmin()
     {
         $this->validate([
@@ -161,7 +484,36 @@ class DioceseDashboard extends Component
         $this->successMessage = "Parish Chairperson '{$admin->name}' successfully created and assigned.";
     }
 
-    public function createQuestion()
+    // =========================================================================
+    // 5. QUESTION BANK CRUD (Q&A)
+    // =========================================================================
+    public function openCreateQuestionModal()
+    {
+        $this->reset(['editQuestionId', 'newQuestionCategoryId', 'newQuestionText', 'optionA', 'optionB', 'optionC', 'optionD', 'correctOption', 'newQuestionExplanation', 'newQuestionCitation', 'newQuestionLevel']);
+        $this->showQuestionModal = true;
+    }
+
+    public function editQuestion(string $id)
+    {
+        $question = Question::findOrFail($id);
+        $this->editQuestionId = $question->id;
+        $this->newQuestionCategoryId = $question->category_id;
+        $this->newQuestionText = $question->question_text;
+        $this->newQuestionLevel = $question->level ?? 1;
+        $this->newQuestionExplanation = $question->explanation ?? '';
+        $this->newQuestionCitation = $question->reference_citation ?? '';
+        $this->correctOption = $question->correct_option_key ?? 'A';
+
+        $opts = (array) ($question->options ?? []);
+        $this->optionA = $opts['A'] ?? '';
+        $this->optionB = $opts['B'] ?? '';
+        $this->optionC = $opts['C'] ?? '';
+        $this->optionD = $opts['D'] ?? '';
+
+        $this->showQuestionModal = true;
+    }
+
+    public function saveQuestion()
     {
         $this->validate([
             'newQuestionCategoryId' => 'required|exists:categories,id',
@@ -175,36 +527,448 @@ class DioceseDashboard extends Component
             'newQuestionCitation' => 'nullable|string',
         ]);
 
-        $options = [
+        $optionsMap = [
             'A' => $this->optionA,
             'B' => $this->optionB,
             'C' => $this->optionC,
             'D' => $this->optionD,
         ];
 
-        $question = Question::create([
-            'category_id' => $this->newQuestionCategoryId,
-            'level' => $this->newQuestionLevel,
-            'question_text' => $this->newQuestionText,
-            'options' => $options,
-            'correct_option_key' => $this->correctOption,
-            'explanation' => $this->newQuestionExplanation,
-            'reference_citation' => $this->newQuestionCitation ?: 'CCC & Scripture',
-            'is_active' => true,
-        ]);
+        if ($this->editQuestionId) {
+            $question = Question::findOrFail($this->editQuestionId);
+            $question->update([
+                'category_id' => $this->newQuestionCategoryId,
+                'level' => $this->newQuestionLevel,
+                'question_text' => $this->newQuestionText,
+                'options' => $optionsMap,
+                'correct_option_key' => $this->correctOption,
+                'explanation' => $this->newQuestionExplanation,
+                'reference_citation' => $this->newQuestionCitation ?: 'CCC & Scripture',
+            ]);
 
-        app(AuditLogService::class)->log(
-            'question_created_in_bank',
-            $question,
-            null,
-            ['question_text' => $this->newQuestionText, 'category_id' => $this->newQuestionCategoryId],
-            Auth::user()
-        );
+            $this->successMessage = 'Question updated successfully!';
+        } else {
+            $question = Question::create([
+                'category_id' => $this->newQuestionCategoryId,
+                'level' => $this->newQuestionLevel,
+                'question_text' => $this->newQuestionText,
+                'options' => $optionsMap,
+                'correct_option_key' => $this->correctOption,
+                'explanation' => $this->newQuestionExplanation,
+                'reference_citation' => $this->newQuestionCitation ?: 'CCC & Scripture',
+                'is_active' => true,
+            ]);
 
-        $this->reset(['newQuestionCategoryId', 'newQuestionText', 'optionA', 'optionB', 'optionC', 'optionD', 'newQuestionExplanation', 'newQuestionCitation', 'showQuestionModal']);
-        $this->successMessage = 'New formation question successfully published to universal question bank!';
+            $this->successMessage = 'New question successfully added to question bank!';
+        }
+
+        $this->reset(['editQuestionId', 'newQuestionCategoryId', 'newQuestionText', 'optionA', 'optionB', 'optionC', 'optionD', 'newQuestionExplanation', 'newQuestionCitation', 'showQuestionModal']);
     }
 
+    public function deleteQuestion(string $id)
+    {
+        $question = Question::findOrFail($id);
+        $question->delete();
+
+        $this->successMessage = 'Question deleted from bank.';
+    }
+
+    // =========================================================================
+    // 6. STUDY LESSONS CRUD
+    // =========================================================================
+    public function openCreateLessonModal()
+    {
+        $this->reset([
+            'editLessonId',
+            'lessonCategoryId',
+            'lessonTitle',
+            'lessonSubheading',
+            'lessonContent',
+            'lessonTakeaways',
+            'lessonScripture',
+            'lessonCatechism',
+        ]);
+        $this->lessonReadMinutes = 5;
+        $this->lessonDifficulty = 1;
+        $this->lessonStatus = 'published';
+        $this->showLessonModal = true;
+    }
+
+    public function editLesson(string $id)
+    {
+        $lesson = Lesson::findOrFail($id);
+        $this->editLessonId = $lesson->id;
+        $this->lessonCategoryId = $lesson->category_id;
+        $this->lessonTitle = $lesson->title;
+        $this->lessonSubheading = $lesson->subheading ?? '';
+        
+        // Flatten content sections to text
+        if (is_array($lesson->content_sections)) {
+            $sectionsText = [];
+            foreach ($lesson->content_sections as $sec) {
+                if (is_array($sec)) {
+                    $heading = $sec['heading'] ?? '';
+                    $body = $sec['body'] ?? '';
+                    $sectionsText[] = ($heading && $heading !== $lesson->title ? "### {$heading}\n" : '') . $body;
+                } else {
+                    $sectionsText[] = (string) $sec;
+                }
+            }
+            $this->lessonContent = implode("\n\n", $sectionsText);
+        } else {
+            $this->lessonContent = (string) ($lesson->content_sections ?? '');
+        }
+
+        if (is_array($lesson->summary_takeaways)) {
+            $this->lessonTakeaways = implode("\n", $lesson->summary_takeaways);
+        } else {
+            $this->lessonTakeaways = (string) ($lesson->summary_takeaways ?? '');
+        }
+
+        $this->lessonReadMinutes = $lesson->estimated_read_minutes ?? 5;
+        $this->lessonDifficulty = $lesson->difficulty ?? 1;
+        $this->lessonScripture = $lesson->scripture_citations ?? '';
+        $this->lessonCatechism = $lesson->catechism_citations ?? '';
+        $this->lessonStatus = $lesson->status ?? 'published';
+        $this->showLessonModal = true;
+    }
+
+    public function saveLesson()
+    {
+        $this->validate([
+            'lessonCategoryId' => 'required|exists:categories,id',
+            'lessonTitle' => 'required|string|min:3|max:150',
+            'lessonSubheading' => 'nullable|string|max:255',
+            'lessonContent' => 'required|string|min:10',
+            'lessonReadMinutes' => 'required|integer|min:1|max:60',
+            'lessonDifficulty' => 'required|in:1,2,3',
+            'lessonStatus' => 'required|in:published,draft',
+        ]);
+
+        $takeawaysArray = array_values(array_filter(
+            array_map('trim', explode("\n", $this->lessonTakeaways)),
+            fn($item) => !empty($item)
+        ));
+
+        $contentSections = [
+            [
+                'heading' => $this->lessonTitle,
+                'body' => $this->lessonContent,
+            ]
+        ];
+
+        $slug = Str::slug($this->lessonTitle);
+
+        if ($this->editLessonId) {
+            $lesson = Lesson::findOrFail($this->editLessonId);
+            $lesson->update([
+                'category_id' => $this->lessonCategoryId,
+                'title' => $this->lessonTitle,
+                'slug' => $slug,
+                'subheading' => $this->lessonSubheading ?: null,
+                'summary_takeaways' => $takeawaysArray,
+                'content_sections' => $contentSections,
+                'estimated_read_minutes' => $this->lessonReadMinutes,
+                'difficulty' => $this->lessonDifficulty,
+                'scripture_citations' => $this->lessonScripture ?: null,
+                'catechism_citations' => $this->lessonCatechism ?: null,
+                'status' => $this->lessonStatus,
+            ]);
+
+            $this->successMessage = "Lesson '{$lesson->title}' updated successfully!";
+        } else {
+            $lesson = Lesson::create([
+                'category_id' => $this->lessonCategoryId,
+                'title' => $this->lessonTitle,
+                'slug' => $slug . '-' . Str::random(4),
+                'subheading' => $this->lessonSubheading ?: null,
+                'summary_takeaways' => $takeawaysArray,
+                'content_sections' => $contentSections,
+                'estimated_read_minutes' => $this->lessonReadMinutes,
+                'difficulty' => $this->lessonDifficulty,
+                'scripture_citations' => $this->lessonScripture ?: null,
+                'catechism_citations' => $this->lessonCatechism ?: null,
+                'display_order' => Lesson::where('category_id', $this->lessonCategoryId)->count() + 1,
+                'status' => $this->lessonStatus,
+            ]);
+
+            $this->successMessage = "Study lesson '{$lesson->title}' created successfully!";
+        }
+
+        $this->reset([
+            'editLessonId',
+            'lessonCategoryId',
+            'lessonTitle',
+            'lessonSubheading',
+            'lessonContent',
+            'lessonTakeaways',
+            'lessonScripture',
+            'lessonCatechism',
+            'showLessonModal',
+        ]);
+    }
+
+    public function toggleLessonStatus(string $id)
+    {
+        $lesson = Lesson::findOrFail($id);
+        $newStatus = $lesson->status === 'published' ? 'draft' : 'published';
+        $lesson->update(['status' => $newStatus]);
+        $this->successMessage = "Lesson '{$lesson->title}' status set to {$newStatus}.";
+    }
+
+    public function deleteLesson(string $id)
+    {
+        $lesson = Lesson::findOrFail($id);
+        $lesson->delete();
+        $this->successMessage = "Lesson deleted successfully.";
+    }
+
+    // =========================================================================
+    // 7. RALLIES & COMPETITIONS CRUD
+    // =========================================================================
+    public function openCreateCompetitionModal()
+    {
+        $this->reset(['editCompetitionId', 'newCompTitle', 'newCompDescription', 'newCompType', 'newCompCategoryId', 'newCompTimeLimit', 'newCompQuestionCount']);
+        $this->newCompStartTime = now()->addDays(1)->format('Y-m-d\TH:i');
+        $this->newCompEndTime = now()->addDays(7)->format('Y-m-d\TH:i');
+        $this->showCompetitionModal = true;
+    }
+
+    public function editCompetition(string $id)
+    {
+        $competition = DiocesanCompetition::findOrFail($id);
+        $this->editCompetitionId = $competition->id;
+        $this->newCompTitle = $competition->title;
+        $this->newCompDescription = $competition->description ?? '';
+        $this->newCompType = $competition->competition_type ?? 'diocesan';
+        $this->newCompCategoryId = $competition->category_id;
+        $this->newCompStartTime = $competition->start_time ? $competition->start_time->format('Y-m-d\TH:i') : now()->format('Y-m-d\TH:i');
+        $this->newCompEndTime = $competition->end_time ? $competition->end_time->format('Y-m-d\TH:i') : now()->addDays(7)->format('Y-m-d\TH:i');
+        $this->newCompTimeLimit = $competition->time_limit_seconds ?? 300;
+        $this->newCompQuestionCount = $competition->question_count ?? 15;
+        $this->showCompetitionModal = true;
+    }
+
+    public function saveCompetition()
+    {
+        $this->validate([
+            'newCompTitle' => 'required|string|min:4|max:120',
+            'newCompDescription' => 'required|string|min:10',
+            'newCompType' => 'required|in:diocesan,deanery,parish,youth_rally',
+            'newCompStartTime' => 'required|date',
+            'newCompEndTime' => 'required|date|after:newCompStartTime',
+        ]);
+
+        if ($this->editCompetitionId) {
+            $competition = DiocesanCompetition::findOrFail($this->editCompetitionId);
+            $competition->update([
+                'title' => $this->newCompTitle,
+                'description' => $this->newCompDescription,
+                'competition_type' => $this->newCompType,
+                'category_id' => $this->newCompCategoryId ?: Category::first()?->id,
+                'time_limit_seconds' => $this->newCompTimeLimit,
+                'question_count' => $this->newCompQuestionCount,
+                'start_time' => $this->newCompStartTime,
+                'end_time' => $this->newCompEndTime,
+            ]);
+
+            $this->successMessage = "Competition '{$competition->title}' updated successfully!";
+        } else {
+            $competition = DiocesanCompetition::create([
+                'created_by' => Auth::id(),
+                'title' => $this->newCompTitle,
+                'description' => $this->newCompDescription,
+                'competition_type' => $this->newCompType,
+                'category_id' => $this->newCompCategoryId ?: Category::first()?->id,
+                'rally_pin' => (string) random_int(100000, 999999),
+                'level' => 2,
+                'time_limit_seconds' => $this->newCompTimeLimit,
+                'question_count' => $this->newCompQuestionCount,
+                'status' => 'active',
+                'start_time' => $this->newCompStartTime,
+                'end_time' => $this->newCompEndTime,
+                'scoring_rules' => [
+                    'base_xp_per_correct' => 15,
+                    'speed_bonus' => true,
+                    'penalty_for_wrong' => false,
+                ],
+            ]);
+
+            $this->successMessage = "Diocesan Competition '{$competition->title}' scheduled!";
+        }
+
+        $this->reset(['editCompetitionId', 'newCompTitle', 'newCompDescription', 'showCompetitionModal']);
+    }
+
+    public function toggleCompetitionStatus(string $id)
+    {
+        $comp = DiocesanCompetition::findOrFail($id);
+        $newStatus = $comp->status === 'active' ? 'concluded' : 'active';
+        $comp->update(['status' => $newStatus]);
+
+        $this->successMessage = "Competition '{$comp->title}' is now {$newStatus}.";
+    }
+
+    public function deleteCompetition(string $id)
+    {
+        $comp = DiocesanCompetition::findOrFail($id);
+        $comp->delete();
+        $this->successMessage = "Competition deleted successfully.";
+    }
+
+    // =========================================================================
+    // 8. DYNAMIC FILE IMPORT (CSV, XLSX, JSON)
+    // =========================================================================
+    public function openImportModal()
+    {
+        $this->reset(['importFile', 'importResults', 'isImporting']);
+        $this->importDuplicateStrategy = 'skip';
+        $this->showImportModal = true;
+    }
+
+    public function processDynamicImport()
+    {
+        $this->validate([
+            'importFile' => 'required',
+            'importDuplicateStrategy' => 'required|in:skip,overwrite',
+        ]);
+
+        $this->isImporting = true;
+        $importService = app(DynamicContentImportService::class);
+
+        try {
+            // Parse file into rows
+            $rows = $importService->parseFile($this->importFile);
+
+            if (empty($rows)) {
+                $this->errorMessage = 'No valid question rows found in the uploaded file. Please verify file format and columns.';
+                $this->isImporting = false;
+                return;
+            }
+
+            // Execute import
+            $results = $importService->importQuestions(
+                rows: $rows,
+                fallbackTrackId: $this->importTrackId,
+                duplicateStrategy: $this->importDuplicateStrategy,
+                uploader: Auth::user()
+            );
+
+            $this->importResults = $results;
+            $this->isImporting = false;
+
+            app(AuditLogService::class)->log(
+                'bulk_questions_imported',
+                Auth::user(),
+                null,
+                [
+                    'successful' => $results['successful'],
+                    'duplicates_skipped' => $results['duplicates_skipped'],
+                    'failed' => $results['failed'],
+                ],
+                Auth::user()
+            );
+
+            $this->successMessage = "Import completed! Successfully imported {$results['successful']} questions ({$results['duplicates_skipped']} duplicates skipped).";
+        } catch (\Throwable $e) {
+            $this->isImporting = false;
+            $this->errorMessage = "Import failed: {$e->getMessage()}";
+        }
+    }
+
+    public function downloadSampleTemplate(string $format = 'csv')
+    {
+        $importService = app(DynamicContentImportService::class);
+
+        if ($format === 'json') {
+            return response()->streamDownload(function () use ($importService) {
+                echo $importService->getSampleJson();
+            }, 'catholic_questions_template.json', ['Content-Type' => 'application/json']);
+        }
+
+        return response()->streamDownload(function () use ($importService) {
+            echo $importService->getSampleCsv();
+        }, 'catholic_questions_template.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    // =========================================================================
+    // 9. DYNAMIC FILE IMPORT FOR LESSONS (CSV, XLSX, JSON)
+    // =========================================================================
+    public function openLessonImportModal()
+    {
+        $this->reset(['lessonImportFile', 'lessonImportResults', 'isLessonImporting']);
+        $this->lessonImportDuplicateStrategy = 'skip';
+        $this->showLessonImportModal = true;
+    }
+
+    public function processLessonImport()
+    {
+        $this->validate([
+            'lessonImportFile' => 'required',
+            'lessonImportDuplicateStrategy' => 'required|in:skip,overwrite',
+        ]);
+
+        $this->isLessonImporting = true;
+        $importService = app(DynamicContentImportService::class);
+
+        try {
+            // Parse file into rows
+            $rows = $importService->parseFile($this->lessonImportFile);
+
+            if (empty($rows)) {
+                $this->errorMessage = 'No valid lesson rows found in the uploaded file. Please verify file format and columns.';
+                $this->isLessonImporting = false;
+                return;
+            }
+
+            // Execute lesson import
+            $results = $importService->importLessons(
+                rows: $rows,
+                fallbackCategoryId: $this->lessonImportCategoryId,
+                duplicateStrategy: $this->lessonImportDuplicateStrategy,
+                uploader: Auth::user()
+            );
+
+            $this->lessonImportResults = $results;
+            $this->isLessonImporting = false;
+
+            app(AuditLogService::class)->log(
+                'bulk_lessons_imported',
+                Auth::user(),
+                null,
+                [
+                    'successful' => $results['successful'],
+                    'duplicates_skipped' => $results['duplicates_skipped'],
+                    'failed' => $results['failed'],
+                ],
+                Auth::user()
+            );
+
+            $this->successMessage = "Lesson import completed! Successfully imported {$results['successful']} lessons ({$results['duplicates_skipped']} duplicates skipped).";
+        } catch (\Throwable $e) {
+            $this->isLessonImporting = false;
+            $this->errorMessage = "Lesson import failed: {$e->getMessage()}";
+        }
+    }
+
+    public function downloadSampleLessonTemplate(string $format = 'csv')
+    {
+        $importService = app(DynamicContentImportService::class);
+
+        if ($format === 'json') {
+            return response()->streamDownload(function () use ($importService) {
+                echo $importService->getSampleLessonJson();
+            }, 'catholic_lessons_template.json', ['Content-Type' => 'application/json']);
+        }
+
+        return response()->streamDownload(function () use ($importService) {
+            echo $importService->getSampleLessonCsv();
+        }, 'catholic_lessons_template.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    // =========================================================================
+    // 10. TRANSFERS & REPORTS
+    // =========================================================================
     public function approveTransfer(string $transferId)
     {
         $transfer = ParishTransfer::findOrFail($transferId);
@@ -253,48 +1017,6 @@ class DioceseDashboard extends Component
         $this->successMessage = "Parish transfer rejected.";
     }
 
-    public function createCompetition()
-    {
-        $this->validate([
-            'newCompTitle' => 'required|string|min:4|max:120',
-            'newCompDescription' => 'required|string|min:10',
-            'newCompType' => 'required|in:diocesan,deanery,parish,youth_rally',
-            'newCompStartTime' => 'required|date',
-            'newCompEndTime' => 'required|date|after:newCompStartTime',
-        ]);
-
-        $competition = DiocesanCompetition::create([
-            'created_by' => Auth::id(),
-            'title' => $this->newCompTitle,
-            'description' => $this->newCompDescription,
-            'competition_type' => $this->newCompType,
-            'category_id' => $this->newCompCategoryId ?: Category::first()?->id,
-            'rally_pin' => (string) random_int(100000, 999999),
-            'level' => 2,
-            'time_limit_seconds' => $this->newCompTimeLimit,
-            'question_count' => $this->newCompQuestionCount,
-            'status' => 'active',
-            'start_time' => $this->newCompStartTime,
-            'end_time' => $this->newCompEndTime,
-            'scoring_rules' => [
-                'base_xp_per_correct' => 15,
-                'speed_bonus' => true,
-                'penalty_for_wrong' => false,
-            ],
-        ]);
-
-        app(AuditLogService::class)->log(
-            'diocesan_competition_created',
-            $competition,
-            null,
-            ['title' => $this->newCompTitle, 'type' => $this->newCompType],
-            Auth::user()
-        );
-
-        $this->reset(['newCompTitle', 'newCompDescription', 'showCompetitionModal']);
-        $this->successMessage = "Diocesan Competition '{$competition->title}' successfully scheduled!";
-    }
-
     public function generateExecutiveReport()
     {
         $analyticsService = app(DiocesanAnalyticsService::class);
@@ -313,23 +1035,43 @@ class DioceseDashboard extends Component
 
         // 1. Live Diocesan KPIs
         $kpis = $analyticsService->getDiocesanKpis();
-        $deaneries = Deanery::withCount('parishes')->get();
 
-        // 2. Parishes List
-        $parishes = Parish::with('deanery')
-            ->withCount(['users as youth_count' => fn($q) => $q->where('role', 'youth')])
-            ->when($this->searchQuery && $this->activeTab === 'parishes', fn($q) => $q->where('name', 'like', "%{$this->searchQuery}%"))
+        // 2. Deaneries List
+        $deaneries = Deanery::withCount('parishes')
+            ->when($this->searchQuery && $this->activeTab === 'deaneries', fn($q) => $q->where('name', 'like', "%{$this->searchQuery}%")->orWhere('code', 'like', "%{$this->searchQuery}%"))
             ->orderBy('name')
             ->get();
 
-        // 3. Parish Admins List
+        // 3. Parishes List
+        $parishes = Parish::with('deanery')
+            ->withCount(['users as youth_count' => fn($q) => $q->where('role', 'youth')])
+            ->when($this->selectedDeaneryFilter, fn($q) => $q->where('deanery_id', $this->selectedDeaneryFilter))
+            ->when($this->searchQuery && $this->activeTab === 'parishes', fn($q) => $q->where('name', 'like', "%{$this->searchQuery}%")->orWhere('code', 'like', "%{$this->searchQuery}%"))
+            ->orderBy('name')
+            ->get();
+
+        // 4. Tracks / Categories List
+        $tracks = TaxonomyTrack::withCount(['categories', 'questions'])
+            ->when($this->searchQuery && $this->activeTab === 'tracks', fn($q) => $q->where('name', 'like', "%{$this->searchQuery}%"))
+            ->orderBy('display_order')
+            ->get();
+
+        // 5. Study Lessons List
+        $lessons = Lesson::with('category')
+            ->when($this->selectedCategoryFilter, fn($q) => $q->where('category_id', $this->selectedCategoryFilter))
+            ->when($this->searchQuery && $this->activeTab === 'lessons', fn($q) => $q->where('title', 'like', "%{$this->searchQuery}%")->orWhere('subheading', 'like', "%{$this->searchQuery}%"))
+            ->orderBy('display_order')
+            ->latest()
+            ->paginate(15);
+
+        // 6. Parish Admins List
         $admins = User::whereIn('role', ['chairperson', 'deanery_admin'])
             ->with('parish')
             ->when($this->searchQuery && $this->activeTab === 'admins', fn($q) => $q->where('name', 'like', "%{$this->searchQuery}%")->orWhere('email', 'like', "%{$this->searchQuery}%"))
             ->latest()
             ->get();
 
-        // 4. Youth Members List
+        // 7. Youth Members List
         $youths = User::where('role', 'youth')
             ->with('parish')
             ->when($this->selectedParishFilter, fn($q) => $q->where('parish_id', $this->selectedParishFilter))
@@ -337,27 +1079,28 @@ class DioceseDashboard extends Component
             ->latest()
             ->paginate(15);
 
-        // 5. Pending Transfers
+        // 8. Pending Transfers
         $pendingTransfers = ParishTransfer::where('status', 'pending')
             ->with(['user', 'fromParish', 'toParish'])
             ->latest()
             ->get();
 
-        // 6. Questions
+        // 9. Questions Bank (Q&A)
         $questions = Question::with('category')
+            ->when($this->selectedCategoryFilter, fn($q) => $q->where('category_id', $this->selectedCategoryFilter))
             ->when($this->searchQuery && $this->activeTab === 'questions', fn($q) => $q->where('question_text', 'like', "%{$this->searchQuery}%"))
             ->latest()
-            ->take(20)
-            ->get();
+            ->paginate(20);
 
         $categories = Category::withCount(['lessons', 'questions'])->get();
 
-        // 7. Competitions
+        // 10. Competitions & Rallies
         $competitions = DiocesanCompetition::with(['category', 'creator'])
+            ->when($this->searchQuery && $this->activeTab === 'competitions', fn($q) => $q->where('title', 'like', "%{$this->searchQuery}%"))
             ->latest()
             ->get();
 
-        // 8. Audit Logs
+        // 11. Audit Logs
         $auditLogs = AuditLog::with('user')
             ->latest()
             ->take(15)
@@ -368,6 +1111,8 @@ class DioceseDashboard extends Component
             'kpis' => $kpis,
             'deaneries' => $deaneries,
             'parishes' => $parishes,
+            'tracks' => $tracks,
+            'lessons' => $lessons,
             'admins' => $admins,
             'youths' => $youths,
             'pendingTransfers' => $pendingTransfers,

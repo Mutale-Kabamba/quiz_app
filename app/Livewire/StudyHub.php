@@ -17,7 +17,7 @@ use Livewire\Component;
 
 class StudyHub extends Component
 {
-    public ?int $selectedCategoryId = null;
+    public int|string|null $selectedCategoryId = null;
     public string $search = '';
     public string $adminTab = 'tracks'; // 'tracks', 'lessons', 'gaps'
 
@@ -30,14 +30,38 @@ class StudyHub extends Component
 
     public ?string $successMessage = null;
 
-    public function mount(?int $selectedCategoryId = null)
+    public function mount(mixed $selectedCategoryId = null)
     {
-        $this->selectedCategoryId = $selectedCategoryId;
+        if ($selectedCategoryId !== null && $selectedCategoryId !== '') {
+            if (is_numeric($selectedCategoryId)) {
+                $this->selectedCategoryId = (int) $selectedCategoryId;
+            } else {
+                // Check if it's a category slug/code
+                $cat = Category::where('slug', $selectedCategoryId)
+                    ->orWhere('code', strtoupper($selectedCategoryId))
+                    ->first();
+
+                if ($cat) {
+                    $this->selectedCategoryId = $cat->id;
+                } else {
+                    // Check if it's a lesson ID or slug and redirect to lesson viewer
+                    $lesson = Lesson::where('id', $selectedCategoryId)
+                        ->orWhere('slug', $selectedCategoryId)
+                        ->first();
+
+                    if ($lesson) {
+                        return redirect()->route('lesson.show', $lesson->id);
+                    }
+
+                    $this->selectedCategoryId = null;
+                }
+            }
+        }
     }
 
-    public function selectCategory(?int $id)
+    public function selectCategory(mixed $id)
     {
-        $this->selectedCategoryId = $id;
+        $this->selectedCategoryId = $id ? (int) $id : null;
     }
 
     public function setAdminTab(string $tab)

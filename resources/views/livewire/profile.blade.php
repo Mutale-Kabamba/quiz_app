@@ -306,17 +306,113 @@
     <!-- ========================================================================= -->
     <!-- 6. ACCOUNT SECURITY                                                       -->
     <!-- ========================================================================= -->
-    <div id="account-security" class="scroll-mt-20 p-5 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-3.5 shadow-sm transition-all">
+    <div id="account-security" 
+         x-data="{
+             registeringBiometrics: false,
+             biometricError: null,
+
+             init() {
+                 window.addEventListener('biometric-enrolled-on-device', (e) => {
+                     const payload = Array.isArray(e.detail) ? e.detail[0] : e.detail;
+                     localStorage.setItem('catholic_youth_biometric_auth', JSON.stringify(payload));
+                 });
+
+                 window.addEventListener('biometric-revoked-on-device', () => {
+                     localStorage.removeItem('catholic_youth_biometric_auth');
+                 });
+             },
+
+             async registerBiometricsOnDevice() {
+                 this.registeringBiometrics = true;
+                 this.biometricError = null;
+
+                 try {
+                     let credentialId = null;
+
+                     // Trigger phone hardware fingerprint/FaceID registration prompt
+                     if (window.PublicKeyCredential && navigator.credentials && navigator.credentials.create) {
+                         try {
+                             const challenge = new Uint8Array(32);
+                             window.crypto.getRandomValues(challenge);
+                             const userIdBuffer = new Uint8Array(16);
+                             window.crypto.getRandomValues(userIdBuffer);
+
+                             const credential = await navigator.credentials.create({
+                                 publicKey: {
+                                     challenge: challenge,
+                                     rp: { name: 'Catholic Youth Ministry', id: window.location.hostname },
+                                     user: {
+                                         id: userIdBuffer,
+                                         name: '{{ $user->email ?? $user->phone }}',
+                                         displayName: '{{ $user->name }}'
+                                     },
+                                     pubKeyCredParams: [
+                                         { type: 'public-key', alg: -7 },
+                                         { type: 'public-key', alg: -257 }
+                                     ],
+                                     authenticatorSelection: {
+                                         authenticatorAttachment: 'platform',
+                                         userVerification: 'required'
+                                     },
+                                     timeout: 60000,
+                                     attestation: 'none'
+                                 }
+                             });
+
+                             if (credential && credential.id) {
+                                 credentialId = credential.id;
+                             }
+                         } catch (err) {
+                             if (err.name === 'NotAllowedError' || err.name === 'AbortError') {
+                                 this.registeringBiometrics = false;
+                                 this.biometricError = 'Fingerprint registration was cancelled or unverified. Please scan a valid registered finger.';
+                                 return;
+                             }
+                             console.warn('WebAuthn registration fallback notice:', err);
+                         }
+                     }
+
+                     // Trigger NativePHP mobile biometric prompt if active
+                     if (window.Native && window.Native.biometric) {
+                         try {
+                             await window.Native.biometric.prompt();
+                         } catch (ne) {
+                             console.warn('Native biometric prompt notice:', ne);
+                         }
+                     }
+
+                     const enrolledPayload = await $wire.enableBiometrics(credentialId);
+                     if (enrolledPayload) {
+                         localStorage.setItem('catholic_youth_biometric_auth', JSON.stringify(enrolledPayload));
+                     }
+                     this.registeringBiometrics = false;
+                 } catch (e) {
+                     this.registeringBiometrics = false;
+                     this.biometricError = 'Failed to register biometrics on this device.';
+                 }
+             }
+         }"
+         class="scroll-mt-20 p-5 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm transition-all">
+        
         <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
             <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Account Security
+                Account Security &amp; Biometrics
             </h3>
             <button wire:click="$set('showPasswordModal', true)" class="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline">
                 Change Password
             </button>
         </div>
 
-        <div class="space-y-3 text-xs">
+        <!-- Biometric Registration Error Banner -->
+        <div x-show="biometricError" x-cloak class="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/60 rounded-xl text-xs text-red-700 dark:text-red-300 leading-snug flex items-start gap-2 animate-fade-in">
+            <svg class="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span x-text="biometricError"></span>
+        </div>
+
+        <div class="space-y-4 text-xs">
+            <!-- 1. Password Security -->
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-slate-900 dark:text-white font-semibold block">Password Security</span>
@@ -324,9 +420,46 @@
                         {{ $user->last_password_changed_at ? 'Changed ' . $user->last_password_changed_at->diffForHumans() : 'Protected with account password' }}
                     </span>
                 </div>
-                <button wire:click="$set('showPasswordModal', true)" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold touch-press">
+                <button wire:click="$set('showPasswordModal', true)" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold touch-press transition-colors">
                     Update
                 </button>
+            </div>
+
+            <!-- 2. Biometric Authentication -->
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                <div class="space-y-0.5 max-w-[70%]">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 004.07 9.5"/>
+                        </svg>
+                        <span class="text-slate-900 dark:text-white font-semibold">Biometric Login</span>
+                    </div>
+                    <span class="text-[11px] text-slate-400 block leading-tight">
+                        Instant sign-in using Face ID, Touch ID, or Fingerprint on this device.
+                    </span>
+                </div>
+
+                @if($biometricEnabled)
+                    <button 
+                        type="button" 
+                        wire:click="disableBiometrics" 
+                        wire:loading.attr="disabled"
+                        class="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900 text-xs font-bold transition-colors touch-press">
+                        Disable
+                    </button>
+                @else
+                    <button 
+                        type="button" 
+                        @click="registerBiometricsOnDevice()"
+                        :disabled="registeringBiometrics"
+                        class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors shadow-sm touch-press disabled:opacity-75 flex items-center gap-1.5">
+                        <span x-show="!registeringBiometrics">Enable</span>
+                        <span x-show="registeringBiometrics" x-cloak class="flex items-center gap-1">
+                            <svg class="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                            <span>Scanning...</span>
+                        </span>
+                    </button>
+                @endif
             </div>
         </div>
     </div>
