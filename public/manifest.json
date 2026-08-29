@@ -1,0 +1,76 @@
+{
+  "name": "Livingstone Diocese Catholic Youth Ministry",
+  "short_name": "Catholic Youth",
+  "description": "Faith Formation, Catechism & Quiz Platform for the Catholic Diocese of Livingstone, Zambia.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B0F19",
+  "theme_color": "#5B21B6",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "lifestyle", "social"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Study & Catechism",
+      "short_name": "Study",
+      "description": "Explore Catholic doctrinal tracks and catechism lessons",
+      "url": "/study",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Quiz & Arena",
+      "short_name": "Quiz",
+      "description": "Practice diocesan quizzes and live rally competition",
+      "url": "/quiz",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Diocesan Rankings",
+      "short_name": "Leaderboard",
+      "description": "View parish and deanery formation rankings",
+      "url": "/leaderboard",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Formation Profile",
+      "short_name": "Profile",
+      "description": "View personal formation badges, XP, and settings",
+      "url": "/profile",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
