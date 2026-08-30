@@ -39,26 +39,50 @@ class MobileDashboard extends Component
     public ?SaintProfile $selectedSaint = null;
     public bool $showExplainModal = false;
     public string $explainConcept = '';
+    public ?string $readingsDate = null;
+    public bool $showReadingsModal = false;
+    public string $readingsTab = 'gospel';
 
-    public function joinLiveRally()
+    public function openReadingsModal()
     {
-        $this->validate([
-            'rallyPin' => 'required|numeric|digits:6',
-        ]);
-
-        return redirect()->to('/quiz?tab=compete');
+        $this->showReadingsModal = true;
     }
 
-    public function openSaintModal(int $saintId)
+    public function closeReadingsModal()
     {
-        $this->selectedSaint = SaintProfile::find($saintId);
-        $this->showSaintModal = true;
+        $this->showReadingsModal = false;
     }
 
-    public function openExplainModal(string $concept)
+    public function setReadingsTab(string $tab)
     {
-        $this->explainConcept = $concept;
-        $this->showExplainModal = true;
+        $this->readingsTab = $tab;
+    }
+
+    public function previousDayReadings()
+    {
+        $current = !empty($this->readingsDate) ? \Carbon\Carbon::parse($this->readingsDate) : \Carbon\Carbon::now();
+        $this->readingsDate = $current->subDay()->format('Y-m-d');
+    }
+
+    public function nextDayReadings()
+    {
+        $current = !empty($this->readingsDate) ? \Carbon\Carbon::parse($this->readingsDate) : \Carbon\Carbon::now();
+        $this->readingsDate = $current->addDay()->format('Y-m-d');
+    }
+
+    public function todayReadings()
+    {
+        $this->readingsDate = null;
+    }
+
+    public function setReadingsDate(string $date)
+    {
+        try {
+            $parsed = \Carbon\Carbon::parse($date);
+            $this->readingsDate = $parsed->isToday() ? null : $parsed->format('Y-m-d');
+        } catch (\Exception $e) {
+            $this->readingsDate = null;
+        }
     }
 
     public function render()
@@ -69,7 +93,8 @@ class MobileDashboard extends Component
         }
 
         $liturgicalService = app(LiturgicalCalendarService::class);
-        $liturgicalContext = $liturgicalService->getCurrentContext();
+        $targetDate = !empty($this->readingsDate) ? \Carbon\Carbon::parse($this->readingsDate) : null;
+        $liturgicalContext = $liturgicalService->getCurrentContext($targetDate);
 
         // =========================================================================
         // A. SUPER ADMIN EXECUTIVE OVERVIEW DATA
@@ -135,6 +160,7 @@ class MobileDashboard extends Component
         $parishChallengeService = app(ParishCommunityChallengeService::class);
         $spacedReviewService = app(SpacedReviewService::class);
 
+        $ongoingLesson = $progressService->getOngoingLesson($user);
         $continueLesson = $progressService->getContinueLearningLesson($user);
         $categoryProgress = $progressService->getCategoryProgress($user);
         $smartRecommendations = $intelligenceService->getRecommendations($user);
@@ -166,7 +192,9 @@ class MobileDashboard extends Component
         $unlockedAchievementIds = $user->achievements()->pluck('achievement_id');
         $nextAchievement = Achievement::whereNotIn('id', $unlockedAchievementIds)->first();
 
-        $featuredSaints = SaintProfile::take(4)->get();
+        $featuredSaints = SaintProfile::orderByRaw("CASE WHEN slug = 'st-theresa-of-lisieux' THEN 1 WHEN is_african_heritage = 1 THEN 2 ELSE 3 END")
+            ->take(8)
+            ->get();
         $featuredCategories = Category::withCount(['lessons', 'questions'])->orderBy('display_order')->take(4)->get();
 
         $currentLevel = $user->level ?? 1;
@@ -189,6 +217,7 @@ class MobileDashboard extends Component
         return view('livewire.mobile-dashboard', [
             'user' => $user,
             'liturgicalContext' => $liturgicalContext,
+            'ongoingLesson' => $ongoingLesson,
             'continueLesson' => $continueLesson,
             'categoryProgress' => $categoryProgress,
             'todayChallenge' => $todayChallenge,

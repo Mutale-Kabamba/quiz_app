@@ -28,8 +28,8 @@ class MobileAppFlowTest extends TestCase
 
     public function test_login_and_register_screens_render_for_guests()
     {
-        $this->get('/login')->assertStatus(200)->assertSee('Catholic Youth Ministry');
-        $this->get('/register')->assertStatus(200)->assertSee('Parish Youth Registration');
+        $this->get('/login')->assertStatus(200)->assertSee('Catholic Diocese of Livingstone')->assertSee('Youth Ministry Formation App');
+        $this->get('/register')->assertStatus(200)->assertSee('Catholic Diocese of Livingstone')->assertSee('Youth Ministry Formation App');
     }
 
     public function test_authenticated_youth_can_access_dashboard_and_features()

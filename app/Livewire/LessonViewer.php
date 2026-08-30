@@ -88,10 +88,30 @@ class LessonViewer extends Component
 
     public function render()
     {
-        $nextLesson = $this->isMicroLesson ? Lesson::first() : app(LearningProgressService::class)->getNextLesson($this->lesson);
+        $user = Auth::user();
+        $nextLesson = app(LearningProgressService::class)->getNextLesson($this->lesson);
+        
+        $seriesLessons = collect();
+        $prerequisitesMet = true;
+        $completedSeriesLessonIds = [];
+
+        if ($this->lesson instanceof Lesson && $this->lesson->isPartOfSeries()) {
+            $seriesLessons = $this->lesson->getSeriesLessons();
+            $prerequisitesMet = $this->lesson->arePrerequisitesMet($user);
+            if ($user) {
+                $completedSeriesLessonIds = LessonProgress::where('user_id', $user->id)
+                    ->whereIn('lesson_id', $seriesLessons->pluck('id'))
+                    ->where('is_completed', true)
+                    ->pluck('lesson_id')
+                    ->toArray();
+            }
+        }
 
         return view('livewire.lesson-viewer', [
             'nextLesson' => $nextLesson,
+            'seriesLessons' => $seriesLessons,
+            'prerequisitesMet' => $prerequisitesMet,
+            'completedSeriesLessonIds' => $completedSeriesLessonIds,
         ])->layout('components.layouts.app', ['title' => "{$this->lesson->title} • Catholic Formation"]);
     }
 }

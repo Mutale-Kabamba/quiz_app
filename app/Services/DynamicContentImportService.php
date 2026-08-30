@@ -20,6 +20,9 @@ class DynamicContentImportService
      */
     public function parseFile(mixed $file, ?string $forcedExtension = null): array
     {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300);
+
         $filePath = '';
         $content = '';
         $extension = $forcedExtension;
@@ -137,11 +140,85 @@ class DynamicContentImportService
             return [];
         }
 
-        // Support both direct array or nested structure like {"questions": [...]}, {"lessons": [...]}, etc.
-        if (isset($decoded['questions']) && is_array($decoded['questions'])) {
+        // Support structured series grouping: {"series": [ {"series_identifier": "...", "lessons": [...]}, ... ]}
+        if (isset($decoded['series']) && is_array($decoded['series'])) {
+            $isListOfSeries = false;
+            foreach ($decoded['series'] as $sCheck) {
+                if (is_array($sCheck) && (isset($sCheck['lessons']) || isset($sCheck['micro_lessons']) || isset($sCheck['items']))) {
+                    $isListOfSeries = true;
+                    break;
+                }
+            }
+
+            if ($isListOfSeries) {
+                $flattened = [];
+                foreach ($decoded['series'] as $seriesObj) {
+                    if (!is_array($seriesObj)) {
+                        continue;
+                    }
+                    $sId = $seriesObj['series_identifier'] ?? $seriesObj['series_id'] ?? $seriesObj['series_code'] ?? $seriesObj['series_slug'] ?? $seriesObj['slug'] ?? null;
+                    $sTitle = $seriesObj['series_title'] ?? $seriesObj['series_name'] ?? $seriesObj['title'] ?? $seriesObj['name'] ?? null;
+                    $sProg = isset($seriesObj['is_progressive']) ? $seriesObj['is_progressive'] : (isset($seriesObj['progressive']) ? $seriesObj['progressive'] : true);
+                    $sTrack = $seriesObj['track'] ?? $seriesObj['category'] ?? null;
+
+                    $seriesLessons = $seriesObj['lessons'] ?? $seriesObj['micro_lessons'] ?? $seriesObj['items'] ?? [];
+                    if (is_array($seriesLessons)) {
+                        foreach ($seriesLessons as $idx => $lesson) {
+                            if (!is_array($lesson)) {
+                                continue;
+                            }
+                            if ($sId && !isset($lesson['series_identifier']) && !isset($lesson['series_id'])) {
+                                $lesson['series_identifier'] = $sId;
+                            }
+                            if ($sTitle && !isset($lesson['series_title']) && !isset($lesson['series_name'])) {
+                                $lesson['series_title'] = $sTitle;
+                            }
+                            if (!isset($lesson['is_progressive']) && !isset($lesson['progressive'])) {
+                                $lesson['is_progressive'] = $sProg;
+                            }
+                            if (!isset($lesson['series_order']) && !isset($lesson['series_part']) && !isset($lesson['part'])) {
+                                $lesson['series_order'] = $idx + 1;
+                            }
+                            if ($sTrack && !isset($lesson['track']) && !isset($lesson['category'])) {
+                                $lesson['track'] = $sTrack;
+                            }
+                            $flattened[] = $lesson;
+                        }
+                    }
+                }
+                $items = $flattened;
+            } else {
+                $items = $decoded['series'];
+            }
+        } elseif (isset($decoded['questions']) && is_array($decoded['questions'])) {
             $items = $decoded['questions'];
         } elseif (isset($decoded['lessons']) && is_array($decoded['lessons'])) {
-            $items = $decoded['lessons'];
+            $topSeriesId = $decoded['series_identifier'] ?? $decoded['series_id'] ?? $decoded['series_code'] ?? $decoded['series_slug'] ?? null;
+            $topSeriesTitle = $decoded['series_title'] ?? $decoded['series_name'] ?? null;
+            $topIsProgressive = $decoded['is_progressive'] ?? $decoded['progressive'] ?? null;
+            $topTrack = $decoded['track'] ?? $decoded['category'] ?? null;
+
+            $items = [];
+            foreach ($decoded['lessons'] as $idx => $lesson) {
+                if (is_array($lesson)) {
+                    if ($topSeriesId && !isset($lesson['series_identifier']) && !isset($lesson['series_id'])) {
+                        $lesson['series_identifier'] = $topSeriesId;
+                    }
+                    if ($topSeriesTitle && !isset($lesson['series_title']) && !isset($lesson['series_name'])) {
+                        $lesson['series_title'] = $topSeriesTitle;
+                    }
+                    if ($topIsProgressive !== null && !isset($lesson['is_progressive']) && !isset($lesson['progressive'])) {
+                        $lesson['is_progressive'] = $topIsProgressive;
+                    }
+                    if ($topSeriesId && !isset($lesson['series_order']) && !isset($lesson['series_part']) && !isset($lesson['part'])) {
+                        $lesson['series_order'] = $idx + 1;
+                    }
+                    if ($topTrack && !isset($lesson['track']) && !isset($lesson['category'])) {
+                        $lesson['track'] = $topTrack;
+                    }
+                    $items[] = $lesson;
+                }
+            }
         } elseif (isset($decoded['micro_lessons']) && is_array($decoded['micro_lessons'])) {
             $items = $decoded['micro_lessons'];
         } elseif (isset($decoded['items']) && is_array($decoded['items'])) {
@@ -164,6 +241,23 @@ class DynamicContentImportService
 
             $row = [];
             foreach ($item as $key => $value) {
+                // If 'series' key is provided as an associative array: {"series": {"identifier": "...", "title": "...", "order": 1, "is_progressive": true}}
+                if (in_array(strtolower((string)$key), ['series', 'series_info', 'series_metadata']) && is_array($value)) {
+                    if (isset($value['identifier']) || isset($value['id']) || isset($value['slug']) || isset($value['code'])) {
+                        $row['series_identifier'] = (string) ($value['identifier'] ?? $value['id'] ?? $value['slug'] ?? $value['code']);
+                    }
+                    if (isset($value['title']) || isset($value['name'])) {
+                        $row['series_title'] = (string) ($value['title'] ?? $value['name']);
+                    }
+                    if (isset($value['order']) || isset($value['part']) || isset($value['sequence'])) {
+                        $row['series_order'] = $value['order'] ?? $value['part'] ?? $value['sequence'];
+                    }
+                    if (isset($value['is_progressive']) || isset($value['progressive'])) {
+                        $row['is_progressive'] = $value['is_progressive'] ?? $value['progressive'];
+                    }
+                    continue;
+                }
+
                 $row[$this->normalizeHeaderKey((string)$key)] = is_array($value) ? $value : trim((string)$value);
             }
             $normalized[] = $row;
@@ -235,6 +329,10 @@ class DynamicContentImportService
             'citation', 'reference', 'ref' => 'reference_citation',
             'diff', 'level' => 'difficulty',
             'track', 'track_name', 'category', 'category_name', 'topic' => 'track',
+            'series_id', 'series_code', 'series_slug', 'series_tag', 'series_key', 'seriesid', 'seriesidentifier', 'series_uuid', 'series_ref' => 'series_identifier',
+            'series_name', 'series_heading', 'series_label', 'seriestitle', 'seriesname' => 'series_title',
+            'series_part', 'part', 'series_step', 'part_number', 'lesson_order', 'series_sequence', 'sequence', 'series_index', 'seriesorder', 'seriespart', 'part_no' => 'series_order',
+            'progressive', 'is_sequential', 'sequential', 'lock_sequence', 'prerequisite_required', 'has_prerequisite', 'isprogressive', 'issequential' => 'is_progressive',
             default => $clean,
         };
     }
@@ -248,6 +346,9 @@ class DynamicContentImportService
         string $duplicateStrategy = 'skip', // 'skip', 'overwrite'
         ?User $uploader = null
     ): array {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300);
+
         $duplicateService = app(DuplicateDetectionService::class);
         $tracks = TaxonomyTrack::all()->keyBy('name');
         $categories = Category::all()->keyBy('name');
@@ -462,6 +563,9 @@ class DynamicContentImportService
         string $duplicateStrategy = 'skip',
         ?User $uploader = null
     ): array {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300);
+
         $categories = Category::all()->keyBy(fn($c) => strtolower(trim($c->name)));
         $tracks = TaxonomyTrack::all()->keyBy(fn($t) => strtolower(trim($t->name)));
 
@@ -566,6 +670,49 @@ class DynamicContentImportService
                 $status = 'published';
             }
 
+            // Series identification & progressive linking
+            $seriesId = $row['series_identifier'] ?? $row['series_id'] ?? $row['series_code'] ?? $row['series_slug'] ?? null;
+            $seriesTitle = $row['series_title'] ?? $row['series_name'] ?? $row['series'] ?? null;
+            $seriesOrder = isset($row['series_order']) && $row['series_order'] !== '' ? (int) $row['series_order'] : (isset($row['series_part']) && $row['series_part'] !== '' ? (int) $row['series_part'] : (isset($row['part']) && $row['part'] !== '' ? (int) $row['part'] : null));
+            
+            $isProgressive = true;
+            if (isset($row['is_progressive'])) {
+                $rawProg = $row['is_progressive'];
+                if (is_bool($rawProg)) {
+                    $isProgressive = $rawProg;
+                } elseif (is_string($rawProg)) {
+                    $rawLower = strtolower(trim($rawProg));
+                    $isProgressive = !in_array($rawLower, ['false', '0', 'no', 'off', 'null', 'none', '']);
+                } else {
+                    $isProgressive = (bool) $rawProg;
+                }
+            }
+
+            // Slugify seriesId if given
+            if (!empty($seriesId)) {
+                $seriesId = Str::slug((string) $seriesId);
+            }
+
+            // Auto-detect series from title if not explicitly provided (e.g. "Youth Leadership (Part 1)", "Joyful Mysteries - Lesson 2")
+            if (empty($seriesId) && preg_match('/^(.*?)\s*[\-:\(]?(?:part|lesson|#|volume|vol|step|ep|episode)\s*([0-9]+)\)?/i', $title, $partMatches)) {
+                $baseSeriesTitle = trim($partMatches[1], " -:(");
+                if (!empty($baseSeriesTitle)) {
+                    $seriesTitle = $seriesTitle ?: $baseSeriesTitle;
+                    $seriesId = Str::slug($baseSeriesTitle);
+                    $seriesOrder = $seriesOrder ?? (int) $partMatches[2];
+                }
+            } elseif (!empty($seriesTitle) && empty($seriesId)) {
+                $seriesId = Str::slug((string) $seriesTitle);
+            }
+
+            if ($seriesId && empty($seriesTitle)) {
+                $seriesTitle = ucwords(str_replace(['-', '_'], ' ', $seriesId));
+            }
+
+            if ($seriesId && $seriesOrder === null) {
+                $seriesOrder = 1;
+            }
+
             $slug = Str::slug($title);
 
             // Duplicate detection by title or slug
@@ -590,6 +737,10 @@ class DynamicContentImportService
                 DB::transaction(function () use (
                     $existingLesson,
                     $categoryId,
+                    $seriesId,
+                    $seriesTitle,
+                    $seriesOrder,
+                    $isProgressive,
                     $title,
                     $slug,
                     $subheading,
@@ -605,6 +756,10 @@ class DynamicContentImportService
                     if ($existingLesson) {
                         $existingLesson->update([
                             'category_id' => $categoryId,
+                            'series_identifier' => $seriesId,
+                            'series_title' => $seriesTitle,
+                            'series_order' => $seriesOrder,
+                            'is_progressive' => $isProgressive,
                             'title' => $title,
                             'slug' => $slug,
                             'subheading' => $subheading ?: null,
@@ -621,6 +776,10 @@ class DynamicContentImportService
                     } else {
                         $lesson = \App\Models\Lesson::create([
                             'category_id' => $categoryId,
+                            'series_identifier' => $seriesId,
+                            'series_title' => $seriesTitle,
+                            'series_order' => $seriesOrder,
+                            'is_progressive' => $isProgressive,
                             'title' => $title,
                             'slug' => $slug,
                             'subheading' => $subheading ?: null,
@@ -641,6 +800,10 @@ class DynamicContentImportService
                         ['slug' => $slug],
                         [
                             'category_id' => $categoryId,
+                            'series_identifier' => $seriesId,
+                            'series_title' => $seriesTitle,
+                            'series_order' => $seriesOrder,
+                            'is_progressive' => $isProgressive,
                             'title' => $title,
                             'hook_question' => $subheading ?: "What does Catholic doctrine teach about {$title}?",
                             'content_body' => is_array($contentSections) && isset($contentSections[0]['body']) ? $contentSections[0]['body'] : (string) json_encode($contentSections),
@@ -674,33 +837,45 @@ class DynamicContentImportService
      */
     public function getSampleLessonCsv(): string
     {
-        $headers = ['title', 'track', 'subheading', 'content', 'summary_takeaways', 'estimated_read_minutes', 'difficulty', 'scripture_citations', 'catechism_citations'];
+        $headers = ['title', 'track', 'series_identifier', 'series_title', 'series_order', 'is_progressive', 'subheading', 'content', 'summary_takeaways', 'estimated_read_minutes', 'difficulty', 'scripture_citations', 'catechism_citations'];
         $sampleRows = [
             [
-                'The Seven Sacraments: Visible Signs of Invisible Grace',
+                'The Seven Sacraments (Part 1): Sacraments of Initiation',
                 'Sacraments of the Church',
-                'How does Christ impart sanctifying grace to us through the Church?',
-                "The Church celebrates seven sacraments instituted by Christ: Baptism, Confirmation, Eucharist, Penance, Anointing of the Sick, Holy Orders, and Matrimony.\n\nEach sacrament consists of proper matter (visible element or action), form (the spoken liturgical words), and intent. They are efficacious signs, meaning they truly confer the grace they signify.",
-                "Sacraments were instituted by Jesus Christ.\nThey impart sanctifying grace to the soul.\nThere are 3 Sacraments of Initiation, 2 of Healing, and 2 of Service.",
+                'seven-sacraments',
+                'The Seven Sacraments of the Church',
+                '1',
+                'true',
+                'How does Christ impart sanctifying grace to us through Baptism, Confirmation, and Eucharist?',
+                "The Church celebrates seven sacraments instituted by Christ. The Sacraments of Christian Initiation—Baptism, Confirmation, and the Eucharist—lay the foundations of every Christian life.\n\nEach sacrament consists of proper matter, form, and intent, truly conferring the grace they signify.",
+                "Sacraments were instituted by Jesus Christ.\nBaptism, Confirmation, and Eucharist form Christian Initiation.\nThey impart sanctifying grace to the soul.",
                 '5',
                 '1',
                 'Matthew 28:19, John 20:22-23',
                 'CCC 1113-1134, CCC 1210',
             ],
             [
-                'The Holy Eucharist: Source and Summit of the Faith',
+                'The Seven Sacraments (Part 2): Sacraments of Healing & Service',
                 'Sacraments of the Church',
-                'Why is the Holy Eucharist the center of Christian life and worship?',
-                "In the most blessed sacrament of the Eucharist, the body and blood, together with the soul and divinity, of our Lord Jesus Christ and, therefore, the whole Christ is truly, really, and substantially contained.\n\nThrough the words of consecration spoken by the priest, transubstantiation occurs: the entire substance of bread and wine becomes the Body and Blood of Jesus Christ.",
-                "The Eucharist is the Real Presence of Jesus Christ.\nTransubstantiation changes the substance while appearances remain.\nIt unites the faithful with Christ and one another in the Church.",
+                'seven-sacraments',
+                'The Seven Sacraments of the Church',
+                '2',
+                'true',
+                'How does Christ heal and commission us through Penance, Anointing, Holy Orders, and Matrimony?',
+                "The Lord Jesus Christ, physician of our souls and bodies, willed that his Church continue his work of healing and salvation. Penance and Anointing of the Sick provide healing, while Holy Orders and Matrimony direct salvation towards the service of others.",
+                "Penance and Anointing are Sacraments of Healing.\nHoly Orders and Matrimony are Sacraments of Service/Mission.\nThey strengthen Christians to serve Christ and Church.",
                 '6',
                 '2',
-                'Luke 22:19-20, 1 Corinthians 11:23-26, John 6:51-58',
-                'CCC 1324, CCC 1373-1377',
+                'Luke 22:19-20, James 5:14-15, John 6:51-58',
+                'CCC 1324, CCC 1420-1666',
             ],
             [
                 'The Beatitudes: The Heart of Jesus Preaching',
                 'Christian Morality & Ten Commandments',
+                '',
+                '',
+                '',
+                'true',
                 'How do the Beatitudes fulfill and elevate the Ten Commandments?',
                 "The Beatitudes (Matthew 5:3-12) depict the countenance of Jesus Christ and portray his charity. They express the vocation of the faithful associated with the glory of his Passion and Resurrection.\n\nThey respond to the natural desire for happiness that God has placed in the human heart.",
                 "The Beatitudes are the path to true Christian joy.\nThey call Christians to poverty of spirit, meekness, and purity of heart.\nThey fulfill the promises made to the Chosen People from Abraham.",
@@ -731,8 +906,12 @@ class DynamicContentImportService
         return json_encode([
             'lessons' => [
                 [
-                    'title' => 'The Holy Trinity: The Central Mystery of Faith',
+                    'title' => 'The Holy Trinity (Part 1): One God in Three Divine Persons',
                     'track' => 'Catholic Doctrine & Creed',
+                    'series_identifier' => 'holy-trinity',
+                    'series_title' => 'The Mystery of the Most Holy Trinity',
+                    'series_order' => 1,
+                    'is_progressive' => true,
                     'subheading' => 'How can God be Three Divine Persons in One Divine Nature?',
                     'content' => "The mystery of the Most Holy Trinity is the central mystery of Christian faith and life. It is the mystery of God in himself.\n\nWe do not confess three gods, but one God in three persons: the Father, the Son, and the Holy Spirit. The divine persons are really distinct from one another in their relations of origin.",
                     'summary_takeaways' => [
@@ -748,20 +927,24 @@ class DynamicContentImportService
                     'status' => 'published'
                 ],
                 [
-                    'title' => 'Sacred Scripture and Sacred Tradition',
-                    'track' => 'Holy Scripture',
-                    'subheading' => 'How has God revealed Himself to humanity through Word and Apostolic Tradition?',
-                    'content' => "Divine Revelation is transmitted through Sacred Scripture and Sacred Tradition, bound closely together and communicating one with the other.\n\nThe Magisterium (the Pope and bishops in communion with him) is the authentic teaching authority tasked with authentically interpreting the Word of God.",
+                    'title' => 'The Holy Trinity (Part 2): The Economic Trinity and Salvation',
+                    'track' => 'Catholic Doctrine & Creed',
+                    'series_identifier' => 'holy-trinity',
+                    'series_title' => 'The Mystery of the Most Holy Trinity',
+                    'series_order' => 2,
+                    'is_progressive' => true,
+                    'subheading' => 'How does the Trinity work throughout human salvation history?',
+                    'content' => "God's whole divine economy is the common work of the three divine persons. For as the Trinity has only one and the same nature, so too does it have only one and the same operation.\n\nCreation is attributed to the Father, Redemption to the Son, and Sanctification to the Holy Spirit.",
                     'summary_takeaways' => [
-                        'Sacred Scripture and Sacred Tradition make up a single sacred deposit of the Word of God.',
-                        'The 73 books of the Catholic Canon were inspired by the Holy Spirit.',
-                        'The Magisterium authentically interprets the Word of God.'
+                        'The divine persons act together in salvation history.',
+                        'Creation is attributed to the Father, Redemption to the Son, Sanctification to the Holy Spirit.',
+                        'By grace, Christians are invited into communion with the Trinity.'
                     ],
-                    'key_terms' => ['Deposit of Faith', 'Magisterium', 'Inspiration', 'Tradition'],
+                    'key_terms' => ['Divine Economy', 'Sanctification', 'Redemption', 'Grace'],
                     'estimated_read_minutes' => 6,
                     'difficulty' => 2,
-                    'scripture_citations' => '2 Thessalonians 2:15, 2 Timothy 3:16',
-                    'catechism_citations' => 'CCC 80-87, CCC 120',
+                    'scripture_citations' => 'John 14:26, Ephesians 1:3-14',
+                    'catechism_citations' => 'CCC 257-260',
                     'status' => 'published'
                 ]
             ]

@@ -130,12 +130,22 @@
              }
          },
 
-         forgetDeviceBiometrics() {
-             if (confirm('Remove biometric credentials for ' + (this.biometricUser?.name || 'this account') + ' on this device?')) {
+         async forgetDeviceBiometrics() {
+             const confirmed = window.CatholicConfirm ? await window.CatholicConfirm.show({
+                 title: 'Remove Biometric Passkey',
+                 message: 'Are you sure you want to remove biometric login for ' + (this.biometricUser?.name || 'this account') + ' on this device?',
+                 type: 'danger',
+                 confirmText: 'Yes, Remove'
+             }) : confirm('Remove biometric credentials for ' + (this.biometricUser?.name || 'this account') + ' on this device?');
+
+             if (confirmed) {
                  localStorage.removeItem('catholic_youth_biometric_auth');
                  this.hasBiometric = false;
                  this.biometricUser = null;
                  this.showPasswordForm = true;
+                 if (window.CatholicToast) {
+                     window.CatholicToast.info('Biometric login credentials removed from this device.');
+                 }
              }
          }
      }">
@@ -150,17 +160,15 @@
     <!-- DIOCESAN BRANDING HEADER -->
     <div class="text-center mb-6 space-y-2">
         <!-- Brand Mark Container -->
-        <div class="relative w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 mx-auto flex items-center justify-center shadow-sm">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-6-13h12"/>
-            </svg>
+        <div class="flex items-center justify-center mx-auto mb-1">
+            <img src="{{ asset('images/diocese.png') }}" alt="Livingstone Diocese" class="w-20 h-20 object-contain drop-shadow-md">
         </div>
 
         <div class="space-y-1">
             <span class="inline-block px-2.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-                Livingstone Diocese &bull; Zambia
+                Catholic Diocese of Livingstone
             </span>
-            <h1 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Catholic Youth Ministry</h1>
+            <h1 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Youth Ministry Formation App</h1>
             <h2 class="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">Welcome Back</h2>
             <p class="text-xs text-slate-500 dark:text-slate-400">Continue your faith formation journey in Scripture &amp; Catechism.</p>
         </div>
@@ -297,7 +305,7 @@
                         Password
                     </label>
                     <a href="javascript:void(0)" 
-                       onclick="alert('Please contact your Parish Chairperson or Youth Executive to reset your password.')" 
+                       onclick="window.CatholicAlert ? window.CatholicAlert.show({ title: 'Password Reset Notice', message: 'Please contact your Parish Chairperson or Youth Executive leader to reset your account password.', type: 'info', buttonText: 'Understood' }) : alert('Please contact your Parish Chairperson or Youth Executive to reset your password.')" 
                        class="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline">
                         Forgot password?
                     </a>

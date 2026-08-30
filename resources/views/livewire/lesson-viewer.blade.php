@@ -28,12 +28,60 @@
         </div>
     </div>
 
+    <!-- FORMATION SERIES PROGRESS TRACKER (If part of a series) -->
+    @if($lesson instanceof \App\Models\Lesson && $lesson->isPartOfSeries() && $seriesLessons->isNotEmpty())
+        <div class="p-4 rounded-2xl bg-gradient-to-r from-purple-900/10 via-indigo-900/10 to-purple-900/10 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-purple-950/40 border border-purple-200 dark:border-purple-800/80 space-y-2.5 shadow-sm">
+            <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center gap-1.5 font-bold text-purple-900 dark:text-purple-300">
+                    <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                    </svg>
+                    <span>Series: {{ $lesson->series_title ?: ucwords(str_replace('-', ' ', $lesson->series_identifier)) }}</span>
+                </div>
+                <span class="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 text-[10px] font-bold">
+                    Part {{ $lesson->series_order ?? 1 }} of {{ $seriesLessons->count() }}
+                </span>
+            </div>
+
+            <!-- Series Step Breadcrumbs -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                @foreach($seriesLessons as $sLesson)
+                    @php
+                        $isCurrent = ($sLesson->id === $lesson->id);
+                        $isDone = in_array($sLesson->id, $completedSeriesLessonIds);
+                    @endphp
+                    <a href="/lesson/{{ $sLesson->id }}" 
+                       class="px-2.5 py-1 rounded-lg text-[10px] font-bold shrink-0 transition-all flex items-center gap-1
+                              {{ $isCurrent ? 'bg-purple-600 text-white shadow-sm ring-2 ring-purple-400/50' : ($isDone ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400') }}">
+                        @if($isDone)
+                            <svg class="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                        @endif
+                        <span>Part {{ $sLesson->series_order ?? $loop->iteration }}</span>
+                    </a>
+                @endforeach
+            </div>
+
+            @if(!$prerequisitesMet)
+                <div class="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 shrink-0 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <span>For progressive formation, we recommend completing earlier parts first.</span>
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
+
     <!-- LESSON TITLE & METADATA -->
     <div class="space-y-2 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
             <span>{{ $lesson->estimated_read_minutes }} min read</span>
             <span>&bull;</span>
             <span>Level {{ $lesson->difficulty }}</span>
+            @if($lesson->isPartOfSeries())
+                <span>&bull;</span>
+                <span class="text-purple-600 dark:text-purple-400 font-bold">Part {{ $lesson->series_order ?? 1 }}</span>
+            @endif
             @if($lesson->scripture_citations)
                 <span>&bull;</span>
                 <span class="text-purple-600 dark:text-purple-400 font-bold truncate max-w-[140px]">{{ $lesson->scripture_citations }}</span>
@@ -62,11 +110,16 @@
             </div>
 
             <ul class="space-y-1.5 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                @foreach($lesson->summary_takeaways as $takeaway)
-                    <li class="flex items-start gap-2">
-                        <span class="text-purple-600 font-bold mt-0.5">&bull;</span>
-                        <span>{{ $takeaway }}</span>
-                    </li>
+                @foreach((array) $lesson->summary_takeaways as $takeaway)
+                    @php
+                        $takeawayText = is_array($takeaway) ? ($takeaway['text'] ?? $takeaway['point'] ?? reset($takeaway)) : (string) $takeaway;
+                    @endphp
+                    @if(!empty(trim($takeawayText)))
+                        <li class="flex items-start gap-2">
+                            <span class="text-purple-600 font-bold mt-0.5">&bull;</span>
+                            <span>{{ trim($takeawayText) }}</span>
+                        </li>
+                    @endif
                 @endforeach
             </ul>
         </div>
@@ -75,33 +128,49 @@
     <!-- 2. STRUCTURED READING CONTENT -->
     @if(!empty($lesson->content_sections))
         <div class="space-y-6">
-            @foreach($lesson->content_sections as $section)
+            @foreach((array) $lesson->content_sections as $section)
+                @php
+                    $heading = is_array($section) ? ($section['heading'] ?? $section['title'] ?? null) : null;
+                    $body = is_array($section) ? ($section['body'] ?? $section['content'] ?? $section['text'] ?? $section['paragraph'] ?? '') : (string) $section;
+                    $scriptureQuote = is_array($section) ? ($section['scripture_quote'] ?? $section['scripture'] ?? null) : null;
+                    $catechismQuote = is_array($section) ? ($section['catechism_quote'] ?? $section['catechism'] ?? $section['ccc'] ?? null) : null;
+                @endphp
                 <div class="space-y-3">
-                    <h3 class="text-lg font-bold font-serif text-slate-900 dark:text-white leading-snug">
-                        {{ $section['heading'] }}
-                    </h3>
+                    @if(!empty($heading))
+                        <h3 class="text-lg font-bold font-serif text-slate-900 dark:text-white leading-snug">
+                            {{ $heading }}
+                        </h3>
+                    @endif
 
-                    <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
-                        {{ $section['body'] }}
-                    </p>
+                    @if(!empty($body))
+                        <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
+                            {{ $body }}
+                        </p>
+                    @endif
 
                     <!-- Scripture Citation Callout -->
-                    @if(!empty($section['scripture_quote']))
+                    @if(!empty($scriptureQuote))
                         <div class="p-4 bg-white dark:bg-[#121826] rounded-2xl border-l-4 border-purple-600 border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
                             <span class="text-[10px] font-bold uppercase text-purple-700 dark:text-purple-400 tracking-wider block">Holy Scripture</span>
-                            <p class="text-xs sm:text-sm font-serif text-slate-800 dark:text-slate-200 italic leading-relaxed">{{ $section['scripture_quote'] }}</p>
+                            <p class="text-xs sm:text-sm font-serif text-slate-800 dark:text-slate-200 italic leading-relaxed">{{ $scriptureQuote }}</p>
                         </div>
                     @endif
 
                     <!-- Catechism Citation Callout -->
-                    @if(!empty($section['catechism_quote']))
+                    @if(!empty($catechismQuote))
                         <div class="p-4 bg-white dark:bg-[#121826] rounded-2xl border-l-4 border-amber-600 border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
                             <span class="text-[10px] font-bold uppercase text-amber-700 dark:text-amber-400 tracking-wider block">Catechism of the Catholic Church</span>
-                            <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{{ $section['catechism_quote'] }}</p>
+                            <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{{ $catechismQuote }}</p>
                         </div>
                     @endif
                 </div>
             @endforeach
+        </div>
+    @elseif(!empty($lesson->content_body ?? $lesson->content ?? $lesson->body))
+        <div class="p-5 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 shadow-sm">
+            <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
+                {{ $lesson->content_body ?? $lesson->content ?? $lesson->body }}
+            </p>
         </div>
     @endif
 
@@ -116,11 +185,36 @@
             </h3>
 
             <div class="space-y-2">
-                @foreach($lesson->key_terms as $item)
-                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
-                        <h4 class="text-xs font-bold text-purple-700 dark:text-purple-400">{{ $item['term'] }}</h4>
-                        <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">{{ $item['definition'] }}</p>
-                    </div>
+                @foreach((array) $lesson->key_terms as $key => $item)
+                    @php
+                        $term = '';
+                        $definition = '';
+                        if (is_array($item)) {
+                            $term = $item['term'] ?? $item['name'] ?? $item['title'] ?? (is_string($key) ? $key : '');
+                            $definition = $item['definition'] ?? $item['meaning'] ?? $item['desc'] ?? $item['description'] ?? '';
+                        } elseif (is_string($item)) {
+                            if (is_string($key) && !is_numeric($key)) {
+                                $term = $key;
+                                $definition = $item;
+                            } elseif (str_contains($item, ':')) {
+                                [$term, $definition] = explode(':', $item, 2);
+                            } elseif (str_contains($item, ' - ')) {
+                                [$term, $definition] = explode(' - ', $item, 2);
+                            } else {
+                                $term = $item;
+                            }
+                        }
+                    @endphp
+                    @if(!empty($term) || !empty($definition))
+                        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
+                            @if(!empty($term))
+                                <h4 class="text-xs font-bold text-purple-700 dark:text-purple-400">{{ trim($term) }}</h4>
+                            @endif
+                            @if(!empty($definition))
+                                <p class="text-xs text-slate-600 dark:text-slate-300 {{ !empty($term) ? 'mt-0.5' : '' }} leading-relaxed">{{ trim($definition) }}</p>
+                            @endif
+                        </div>
+                    @endif
                 @endforeach
             </div>
         </div>
@@ -160,8 +254,12 @@
         </div>
 
         @if($nextLesson)
-            <a href="/lesson/{{ $nextLesson->id }}" class="block w-full py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors">
-                Next: {{ $nextLesson->title }} &rarr;
+            <a href="/lesson/{{ $nextLesson->id }}" class="block w-full py-3.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors shadow-sm text-center">
+                @if($lesson instanceof \App\Models\Lesson && $lesson->isPartOfSeries() && $nextLesson->series_identifier === $lesson->series_identifier)
+                    Continue Series &bull; Part {{ $nextLesson->series_order ?? 'Next' }}: {{ $nextLesson->title }} &rarr;
+                @else
+                    Continue to Next Lesson &bull; {{ $nextLesson->title }} &rarr;
+                @endif
             </a>
         @endif
     </div>
@@ -182,13 +280,22 @@
                 </div>
 
                 <div class="space-y-2">
-                    <a href="/flashcards/{{ $lesson->category_id }}" class="block w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm">
+                    @if($nextLesson)
+                        <a href="/lesson/{{ $nextLesson->id }}" class="block w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm">
+                            @if($lesson instanceof \App\Models\Lesson && $lesson->isPartOfSeries() && $nextLesson->series_identifier === $lesson->series_identifier)
+                                Continue to Part {{ $nextLesson->series_order ?? 'Next' }}: {{ $nextLesson->title }} &rarr;
+                            @else
+                                Continue: {{ $nextLesson->title }} &rarr;
+                            @endif
+                        </a>
+                    @endif
+                    <a href="/flashcards/{{ $lesson->category_id }}" class="block w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition-colors shadow-sm">
                         Review Lesson Flashcards &rarr;
                     </a>
                     <button 
                         type="button"
                         wire:click="$set('showCompletionCelebration', false)" 
-                        class="block w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition-colors">
+                        class="block w-full py-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium text-xs transition-colors">
                         Close
                     </button>
                 </div>

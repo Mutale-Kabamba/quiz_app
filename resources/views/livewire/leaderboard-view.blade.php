@@ -10,7 +10,7 @@
                     Diocesan Territory Standings
                 </span>
                 <h2 class="text-xl font-bold font-serif text-slate-900 dark:text-white tracking-tight mt-1">Diocesan Leaderboard</h2>
-                <p class="text-xs text-slate-500">Livingstone Diocese &bull; Deanery, Parish &amp; Youth Formation Standings</p>
+                <p class="text-xs text-slate-500">Catholic Diocese of Livingstone &bull; Deanery, Parish &amp; Youth Formation Standings</p>
             </div>
 
             <!-- SCOPE SWITCHER (Deaneries / Parishes / Youth) -->

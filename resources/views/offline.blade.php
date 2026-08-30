@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
     <meta name="theme-color" content="#5B21B6">
-    <title>Offline • Livingstone Diocese Catholic Youth Ministry</title>
+    <title>Offline • Catholic Diocese of Livingstone • Youth Ministry Formation App</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,11 +28,9 @@
     <div class="max-w-sm w-full text-center space-y-6">
         
         <!-- Catholic Diocesan Icon with Wifi Disconnected Badge -->
-        <div class="relative w-20 h-20 mx-auto rounded-3xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 flex items-center justify-center shadow-sm">
-            <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-6-13h12"/>
-            </svg>
-            <div class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center ring-4 ring-[#F8FAFC] dark:ring-[#0B0F19]">
+        <div class="relative w-20 h-20 mx-auto flex items-center justify-center">
+            <img src="{{ asset('images/diocese.png') }}" alt="Catholic Diocese of Livingstone" class="w-20 h-20 object-contain drop-shadow-md">
+            <div class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center ring-4 ring-[#F8FAFC] dark:ring-[#0B0F19] shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m-2.828-2.828a5 5 0 000-7.072M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -41,7 +39,7 @@
 
         <div class="space-y-2">
             <span class="inline-block px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-                Livingstone Diocese &bull; Catholic Youth Ministry
+                Catholic Diocese of Livingstone &bull; Youth Ministry Formation App
             </span>
             <h1 class="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">You are currently offline</h1>
             <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs mx-auto">

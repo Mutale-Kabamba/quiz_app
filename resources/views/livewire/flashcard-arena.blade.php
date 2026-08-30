@@ -146,5 +146,25 @@
                 </a>
             </div>
         </div>
+    @else
+        <!-- EMPTY STATE WHEN NO FLASHCARDS PUBLISHED -->
+        <div class="p-8 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 text-center space-y-3 shadow-sm">
+            <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">No Flashcards Available</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+                    There are currently no flashcards published in this track. Check back soon as diocesan leadership adds new material!
+                </p>
+            </div>
+            <div class="pt-2">
+                <a href="/study" class="inline-block px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-colors">
+                    Return to Study Library
+                </a>
+            </div>
+        </div>
     @endif
 </div>

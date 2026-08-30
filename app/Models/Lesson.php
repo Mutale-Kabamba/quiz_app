@@ -13,6 +13,10 @@ class Lesson extends Model
 
     protected $fillable = [
         'category_id',
+        'series_identifier',
+        'series_title',
+        'series_order',
+        'is_progressive',
         'title',
         'slug',
         'subheading',
@@ -36,6 +40,8 @@ class Lesson extends Model
             'estimated_read_minutes' => 'integer',
             'difficulty' => 'integer',
             'display_order' => 'integer',
+            'series_order' => 'integer',
+            'is_progressive' => 'boolean',
         ];
     }
 
@@ -52,5 +58,55 @@ class Lesson extends Model
     public function progress(): HasMany
     {
         return $this->hasMany(LessonProgress::class);
+    }
+
+    /**
+     * Check if this lesson is part of a multi-part series
+     */
+    public function isPartOfSeries(): bool
+    {
+        return !empty($this->series_identifier);
+    }
+
+    /**
+     * Get all lessons in the same series
+     */
+    public function getSeriesLessons()
+    {
+        if (!$this->isPartOfSeries()) {
+            return collect([$this]);
+        }
+
+        return self::where('series_identifier', $this->series_identifier)
+            ->where('status', 'published')
+            ->orderBy('series_order')
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
+     * Check if user has completed prerequisites for this progressive lesson
+     */
+    public function arePrerequisitesMet(?User $user): bool
+    {
+        if (!$user || !$this->isPartOfSeries() || !$this->is_progressive || ($this->series_order ?? 1) <= 1) {
+            return true;
+        }
+
+        $precedingLessonIds = self::where('series_identifier', $this->series_identifier)
+            ->where('status', 'published')
+            ->where('series_order', '<', $this->series_order)
+            ->pluck('id');
+
+        if ($precedingLessonIds->isEmpty()) {
+            return true;
+        }
+
+        $completedCount = LessonProgress::where('user_id', $user->id)
+            ->whereIn('lesson_id', $precedingLessonIds)
+            ->where('is_completed', true)
+            ->count();
+
+        return $completedCount >= $precedingLessonIds->count();
     }
 }

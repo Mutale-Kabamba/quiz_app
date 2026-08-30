@@ -1,6 +1,8 @@
 <div class="py-2" 
      x-data="{ 
-        timeLeft: @entangle('timeRemaining'), 
+        timeLeft: @entangle('timeRemaining').live, 
+        isSubmitted: @entangle('isAnswerSubmitted').live,
+        isFinished: @entangle('quizFinished').live,
         timeLimit: {{ $timeLimit }},
         timer: null,
         triggerHaptic() {
@@ -8,21 +10,62 @@
                 navigator.vibrate(30);
             }
         },
+        stopTimer() {
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+        },
         startTimer() {
-            clearInterval(this.timer);
+            this.stopTimer();
+            if (this.isSubmitted || this.isFinished) {
+                return;
+            }
             this.timer = setInterval(() => {
-                if (this.timeLeft > 0 && !@json($isAnswerSubmitted) && !@json($quizFinished)) {
+                if (this.isSubmitted || this.isFinished) {
+                    this.stopTimer();
+                    return;
+                }
+                if (this.timeLeft > 0) {
                     this.timeLeft--;
-                } else if (this.timeLeft === 0 && !@json($isAnswerSubmitted)) {
-                    clearInterval(this.timer);
-                    this.triggerHaptic();
-                    $wire.submitAnswer(null);
+                    if (this.timeLeft === 0) {
+                        this.stopTimer();
+                        this.triggerHaptic();
+                        $wire.submitAnswer(null);
+                    }
+                } else {
+                    this.stopTimer();
                 }
             }, 1000);
+        },
+        selectAnswer(key) {
+            if (this.isSubmitted || this.isFinished) return;
+            this.stopTimer();
+            this.triggerHaptic();
+            $wire.submitAnswer(key);
         }
      }" 
-     x-init="startTimer()"
-     @reset-timer.window="timeLeft = $event.detail.time; startTimer()">
+     x-init="
+        startTimer();
+        $watch('isSubmitted', value => {
+            if (value) {
+                stopTimer();
+            }
+        });
+        $watch('isFinished', value => {
+            if (value) {
+                stopTimer();
+            }
+        });
+     "
+     x-on:destroy="stopTimer()"
+     @reset-timer.window="
+        stopTimer();
+        timeLeft = $event.detail.time || timeLimit;
+        $nextTick(() => {
+            startTimer();
+        });
+     ">
 
     @if(!$quizFinished && count($questions) > 0)
         <!-- 1. TOP APP BAR & LEVEL BADGE -->
@@ -124,8 +167,7 @@
 
                     <button 
                         type="button"
-                        wire:click="submitAnswer('{{ $key }}')" 
-                        @click="triggerHaptic()"
+                        @click="selectAnswer('{{ $key }}')" 
                         @disabled($isAnswerSubmitted)
                         class="{{ $baseStyle }}">
                         <span class="flex items-center gap-3.5">
@@ -186,7 +228,7 @@
         <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center space-y-5 shadow-sm">
             <div class="w-14 h-14 bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center mx-auto border border-purple-200 dark:border-purple-800 shadow-sm">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z"/>
                 </svg>
             </div>
             

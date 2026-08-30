@@ -16,7 +16,7 @@
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
-    <title>{{ $title ?? 'Livingstone Diocese Catholic Youth Ministry' }}</title>
+    <title>{{ $title ?? 'Catholic Diocese of Livingstone • Youth Ministry Formation App' }}</title>
 
     <!-- Google Fonts: Plus Jakarta Sans (Modern UI) & Newsreader (Editorial Catholic Typography) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -93,6 +93,11 @@
             padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
         }
 
+        .sticky-sub-header {
+            position: sticky;
+            top: calc(max(0.875rem, env(safe-area-inset-top, 0px)) + 3.125rem);
+        }
+
         /* Minimal Progress Animation for Preloader */
         @keyframes progressIndeterminate {
             0% { transform: translateX(-100%) scaleX(0.2); }
@@ -144,46 +149,43 @@
     </script>
     @livewireStyles
 </head>
-<body class="h-full font-sans bg-[#F8FAFC] dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-purple-600 selection:text-white"
+<body class="h-full font-sans bg-[#F8FAFC] dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 flex flex-col justify-between antialiased selection:bg-purple-500 selection:text-white"
       x-data="{ 
-          profileMenuOpen: false, 
-          currentTheme: localStorage.getItem('theme') || 'system',
-          setTheme(mode) {
-              this.currentTheme = mode;
-              if (mode === 'dark') {
+          darkMode: localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches),
+          profileMenuOpen: false,
+          toggleDarkMode() {
+              this.darkMode = !this.darkMode;
+              if (this.darkMode) {
                   document.documentElement.classList.add('dark');
                   localStorage.setItem('theme', 'dark');
-              } else if (mode === 'light') {
+              } else {
                   document.documentElement.classList.remove('dark');
                   localStorage.setItem('theme', 'light');
-              } else {
-                  localStorage.removeItem('theme');
-                  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                      document.documentElement.classList.add('dark');
-                  } else {
-                      document.documentElement.classList.remove('dark');
-                  }
               }
           }
-      }">
+      }"
+      x-init="
+          if (darkMode) {
+              document.documentElement.classList.add('dark');
+          } else {
+              document.documentElement.classList.remove('dark');
+          }
+      ">
 
     <!-- GLOBAL BRANDED PRELOADER (ONLY ON INITIAL APP OPEN & LOGIN) -->
     <div id="app-preloader" 
          class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#F8FAFC] dark:bg-[#0B0F19] transition-opacity duration-300 pointer-events-none"
          aria-hidden="true">
         <div class="flex flex-col items-center space-y-4 text-center px-4">
-            <!-- Catholic Diocesan Brand Mark with subtle pulsing ambient ring -->
-            <div class="relative w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 flex items-center justify-center shadow-sm">
-                <!-- Diocesan Cross Icon -->
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-6-13h12"/>
-                </svg>
+            <!-- Catholic Diocesan Brand Mark -->
+            <div class="relative flex items-center justify-center">
+                <img src="{{ asset('images/diocese.png') }}" alt="Catholic Diocese of Livingstone" class="w-20 h-20 object-contain drop-shadow-md">
             </div>
 
             <!-- Application Title & Subtitle -->
             <div class="space-y-0.5">
-                <h2 class="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Livingstone Diocese</h2>
-                <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Catholic Youth Ministry</p>
+                <h2 class="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Catholic Diocese of Livingstone</h2>
+                <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Youth Ministry Formation App</p>
             </div>
 
             <!-- Minimal Progress Indicator -->
@@ -244,19 +246,14 @@
                 <div class="flex items-center justify-between">
                     <!-- Diocesan Seal & Parish Identity -->
                     <a href="/" class="flex items-center gap-2.5 group">
-                        <div class="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center flex-shrink-0 border border-purple-200/80 dark:border-purple-800/80 group-hover:border-purple-400 transition-colors shadow-sm">
-                            <!-- Catholic Cross Outline SVG -->
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-6-13h12"/>
-                            </svg>
-                        </div>
+                        <img src="{{ asset('images/diocese.png') }}" alt="Catholic Diocese of Livingstone Logo" class="w-10 h-10 object-contain flex-shrink-0 drop-shadow-xs group-hover:scale-105 transition-transform">
                         <div>
                             <div class="flex items-center gap-1.5">
-                                <h1 class="text-xs font-bold text-slate-900 dark:text-white tracking-tight leading-tight">Livingstone Diocese</h1>
+                                <h1 class="text-xs font-bold text-slate-900 dark:text-white tracking-tight leading-tight">Catholic Diocese of Livingstone</h1>
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             </div>
                             <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-tight truncate max-w-[180px]">
-                                {{ auth()->user()->parish?->name ?? 'Youth Formation' }}
+                                {{ auth()->user()->parish?->name ?? 'Youth Ministry Formation App' }}
                             </p>
                         </div>
                     </a>
@@ -608,6 +605,9 @@
         </div>
     </div>
 
+    <!-- GLOBAL BEAUTIFIED CONFIRMATION & ALERT MODAL -->
+    <x-confirmation-modal />
+
     <!-- PWA SERVICE WORKER REGISTRATION SCRIPT -->
     <script>
         if ('serviceWorker' in navigator) {
@@ -621,6 +621,24 @@
                     });
             });
         }
+
+        // Global bridge for Livewire event alerts and toasts
+        document.addEventListener('livewire:init', () => {
+            if (window.Livewire) {
+                window.Livewire.on('toast', (data) => {
+                    const payload = Array.isArray(data) ? data[0] : data;
+                    if (window.CatholicToast && payload) {
+                        window.CatholicToast.show(payload);
+                    }
+                });
+                window.Livewire.on('notify', (data) => {
+                    const payload = Array.isArray(data) ? data[0] : data;
+                    if (window.CatholicToast && payload) {
+                        window.CatholicToast.show(payload);
+                    }
+                });
+            }
+        });
     </script>
 
     @livewireScripts

@@ -34,15 +34,19 @@ class QuizSession extends Component
     public function mount(int $categoryId, int $level = 1, string $mode = 'ranked'): void
     {
         $this->categoryId = $categoryId;
-        $this->level = $level;
-        $this->mode = $mode;
+        $this->level = (int) request()->query('level', $level);
+        $this->mode = request()->query('mode', $mode);
         $this->attemptUuid = (string) Str::uuid();
 
-        $this->timeLimit = match ($this->level) {
-            1 => 15, // Junior
-            2 => 20, // Youth
-            3 => 30, // Advanced
-            default => 15,
+        // Level / Mode based timer limits: Practice mode is 30s
+        $this->timeLimit = match ($this->mode) {
+            'practice' => 30,
+            default => match ($this->level) {
+                1 => 15, // Junior
+                2 => 20, // Youth
+                3 => 30, // Advanced
+                default => 20,
+            },
         };
         $this->timeRemaining = $this->timeLimit;
 

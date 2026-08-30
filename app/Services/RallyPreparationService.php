@@ -19,38 +19,22 @@ class RallyPreparationService
     ) {}
 
     /**
-     * Get or create the active Diocesan Youth Rally preparation program.
+     * Get the active Diocesan Youth Rally preparation program if scheduled.
      */
-    public function getActiveRally(): RallyPreparation
+    public function getActiveRally(): ?RallyPreparation
     {
-        $rally = RallyPreparation::where('is_active', true)->first();
-
-        if (!$rally) {
-            $rally = RallyPreparation::create([
-                'title' => '2026 Livingstone Diocesan Youth Rally Preparation',
-                'slug' => '2026-livingstone-diocesan-youth-rally',
-                'rally_date' => Carbon::today()->addDays(18),
-                'description' => 'Comprehensive multi-domain preparation for the annual Livingstone Diocesan Youth Catechetical Rally.',
-                'target_questions_count' => 200,
-                'domain_weights' => [
-                    'scripture' => 25,
-                    'catechism' => 30,
-                    'history' => 15,
-                    'saints' => 15,
-                    'doctrine' => 15,
-                ],
-                'is_active' => true,
-            ]);
-        }
-
-        return $rally;
+        return RallyPreparation::where('is_active', true)->first();
     }
 
     /**
      * Calculate readiness breakdown for a youth.
      */
-    public function calculateReadiness(User $user, RallyPreparation $rally): UserRallyReadiness
+    public function calculateReadiness(User $user, ?RallyPreparation $rally = null): ?UserRallyReadiness
     {
+        if (!$rally) {
+            return null;
+        }
+
         $readiness = UserRallyReadiness::firstOrNew([
             'user_id' => $user->id,
             'rally_id' => $rally->id,

@@ -9,17 +9,15 @@
 
     <!-- DIOCESAN BRANDING HEADER -->
     <div class="text-center mb-5 space-y-2">
-        <div class="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 mx-auto flex items-center justify-center shadow-sm">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-6-13h12"/>
-            </svg>
+        <div class="flex items-center justify-center mx-auto mb-1">
+            <img src="{{ asset('images/diocese.png') }}" alt="Livingstone Diocese" class="w-20 h-20 object-contain drop-shadow-md">
         </div>
         <div class="space-y-1">
             <span class="inline-block px-2.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-                Livingstone Diocese &bull; Zambia
+                Catholic Diocese of Livingstone
             </span>
-            <h1 class="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">Parish Youth Registration</h1>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Join your parish youth community for diocesan formation.</p>
+            <h1 class="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">Youth Ministry Formation App</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Parish Youth Registration &bull; Diocesan Faith Formation</p>
         </div>
     </div>
 

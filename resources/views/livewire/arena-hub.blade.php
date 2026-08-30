@@ -154,20 +154,45 @@
                                 </div>
 
                                 <!-- Actions for this Track/Level -->
-                                <div class="flex items-center justify-end gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                                <div class="flex items-center justify-end gap-1.5 flex-wrap pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                                    <button 
+                                        type="button" 
+                                        wire:click="toggleTrackQuestionsActive({{ $summary->category_id }}, {{ $summary->level }})"
+                                        class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                                        title="Toggle active status for questions in this track tier">
+                                        {{ $summary->active_questions > 0 ? 'Deactivate All' : 'Activate All' }}
+                                    </button>
+
                                     <button 
                                         type="button" 
                                         wire:click="openImportModalForTrack({{ $summary->category_id }})"
-                                        class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors flex items-center gap-1">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                        <span>Import to Track</span>
+                                        class="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-xl transition-colors flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        <span>Import</span>
+                                    </button>
+
+                                    <button 
+                                        type="button" 
+                                        wire:click="openManageTrackModal({{ $summary->category_id }}, {{ $summary->level }})"
+                                        class="px-2.5 py-1.5 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-semibold rounded-xl flex items-center gap-1 transition-colors">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        <span>Update Track</span>
+                                    </button>
+
+                                    <button 
+                                        type="button" 
+                                        wire:confirm="Are you sure you want to delete all {{ $summary->total_questions }} questions in {{ $summary->category?->name ?? 'this track' }} (Level {{ $summary->level }})? This action cannot be undone."
+                                        wire:click="deleteTrackQuestions({{ $summary->category_id }}, {{ $summary->level }})"
+                                        class="px-2.5 py-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-semibold rounded-xl transition-colors"
+                                        title="Delete all questions in this track and level">
+                                        Delete Bank
                                     </button>
 
                                     <button 
                                         type="button" 
                                         wire:click="openCreateQuestionModalForTrack({{ $summary->category_id }}, {{ $summary->level }})"
                                         class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-xl transition-colors flex items-center gap-1">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                                         <span>+ Add Q&amp;A</span>
                                     </button>
                                 </div>
@@ -405,7 +430,10 @@
                     <!-- File Upload Input Area -->
                     <div class="space-y-3 text-xs">
                         <div>
-                            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Select File (CSV, XLSX, JSON)</label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="font-bold text-slate-700 dark:text-slate-300">Select File (CSV, XLSX, JSON)</label>
+                                <span class="text-[10px] text-slate-400 font-semibold">Max 10MB</span>
+                            </div>
                             <input 
                                 type="file" 
                                 wire:model="importFile"
@@ -531,6 +559,92 @@
                         <button wire:click="saveCompetition" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold">
                             {{ $editCompId ? 'Save Changes' : 'Schedule Rally' }}
                         </button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- MANAGE & UPDATE TRACK Q&A BANK MODAL -->
+        @if($showManageTrackModal)
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+                <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-xl my-8">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-white">Update Track Q&amp;A Bank</h3>
+                                <p class="text-[11px] text-slate-500">Edit track metadata, reassign questions, or batch toggle availability</p>
+                            </div>
+                        </div>
+                        <button wire:click="$set('showManageTrackModal', false)" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+                    </div>
+
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Track / Formation Name</label>
+                            <input type="text" wire:model="manageTrackName" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white">
+                            @error('manageTrackName') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Description</label>
+                            <textarea wire:model="manageTrackDescription" rows="2" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white"></textarea>
+                        </div>
+
+                        <div class="p-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2.5">
+                            <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200 block">Batch Actions for Questions in This Track @if($manageTrackLevel) (Level {{ $manageTrackLevel }}) @endif</span>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-500 block mb-1">Reassign Formation Level</label>
+                                    <select wire:model="manageTargetLevel" class="w-full px-2.5 py-1.5 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200">
+                                        <option value="1">Level 1 - Junior</option>
+                                        <option value="2">Level 2 - Youth / Intermediate</option>
+                                        <option value="3">Level 3 - Advanced</option>
+                                        <option value="4">Level 4 - Expert</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-500 block mb-1">Reassign Track / Category</label>
+                                    <select wire:model="manageTargetCategoryId" class="w-full px-2.5 py-1.5 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200">
+                                        @foreach($categories as $cat)
+                                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 block mb-1">Batch Active State</label>
+                                <select wire:model="manageBatchActiveAction" class="w-full px-2.5 py-1.5 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200">
+                                    <option value="keep">Keep Current Status</option>
+                                    <option value="activate_all">Activate All Questions in Track Tier</option>
+                                    <option value="deactivate_all">Deactivate All Questions in Track Tier</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Danger Zone inside Modal -->
+                        <div class="p-3 bg-red-50/70 dark:bg-red-950/20 border border-red-200/70 dark:border-red-900/40 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-red-700 dark:text-red-400 block text-xs">Delete Track Questions</span>
+                                <span class="text-[10px] text-red-600/80 dark:text-red-400/80">Permanently delete all questions in this bank tier.</span>
+                            </div>
+                            <button 
+                                type="button" 
+                                wire:confirm="Are you sure you want to delete all questions in this track tier? This action cannot be undone."
+                                wire:click="deleteTrackQuestions({{ $manageTrackCategoryId ?? 0 }}, {{ $manageTrackLevel }})"
+                                class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[11px] transition-colors">
+                                Delete Now
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                        <button wire:click="$set('showManageTrackModal', false)" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700">Cancel</button>
+                        <button wire:click="saveTrackQAManagement" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all">Save Changes</button>
                     </div>
                 </div>
             </div>
@@ -677,17 +791,29 @@
                 <!-- AVAILABLE PRACTICE TRACKS -->
                 <div class="space-y-2.5">
                     <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Available Practice Quizzes</h3>
-                    @foreach($categories as $cat)
+                    @forelse($categories as $cat)
                         <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between text-xs hover:border-purple-300 transition-colors shadow-sm">
                             <div class="space-y-0.5">
                                 <h4 class="font-bold text-slate-900 dark:text-white text-sm">{{ $cat->name }}</h4>
-                                <span class="text-[11px] text-slate-400">{{ $cat->questions_count }} Questions Available</span>
+                                <span class="text-[11px] {{ $cat->questions_count > 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400' }}">
+                                    {{ $cat->questions_count }} Questions Available
+                                </span>
                             </div>
-                            <a href="/quiz/play/{{ $cat->id }}?level={{ $selectedLevel }}&mode=practice" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-colors touch-press shadow-sm">
-                                Practice &rarr;
-                            </a>
+                            @if($cat->questions_count > 0)
+                                <a href="/quiz/play/{{ $cat->id }}?level={{ $selectedLevel }}&mode=practice" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-colors touch-press shadow-sm">
+                                    Practice &rarr;
+                                </a>
+                            @else
+                                <span class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-semibold rounded-xl text-[11px]">
+                                    Awaiting Questions
+                                </span>
+                            @endif
                         </div>
-                    @endforeach
+                    @empty
+                        <div class="p-8 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
+                            <p class="text-xs text-slate-400">No formation tracks available. Check back soon!</p>
+                        </div>
+                    @endforelse
                 </div>
             </div>
         @endif

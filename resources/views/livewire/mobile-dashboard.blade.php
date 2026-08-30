@@ -248,8 +248,8 @@
             </div>
         </div>
 
-        <!-- 2. HERO FORMATION FEATURE (DAILY SCRIPTURE & CATHOLIC ARTWORK ANCHOR) -->
-        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-950 to-slate-900 text-white p-5 space-y-3.5 border border-purple-800/40 shadow-sm">
+        <!-- 2. DYNAMIC TODAY'S READINGS & CATHOLIC LITURGICAL CALENDAR -->
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-950 to-slate-900 text-white p-5 space-y-4 border border-purple-800/40 shadow-sm">
             <!-- Subtle Catholic Watermark Cross Art SVG -->
             <div class="absolute -right-6 -bottom-6 opacity-10 pointer-events-none text-white">
                 <svg class="w-48 h-48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -257,28 +257,305 @@
                 </svg>
             </div>
 
-            <div class="relative z-10 space-y-2">
-                <div class="flex items-center justify-between text-xs">
-                    <span class="px-2.5 py-0.5 rounded-full bg-white/10 text-purple-200 font-bold uppercase tracking-wider text-[10px] border border-white/15">
-                        Daily Spiritual Bread
-                    </span>
-                    <span class="text-purple-300/80 text-[11px] font-medium">{{ $liturgicalContext['verse_ref'] }}</span>
+            <div class="relative z-10 space-y-3.5">
+                <!-- Header Row: Category Badge, Liturgical Color & Date Navigator -->
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="px-2.5 py-0.5 rounded-full bg-white/10 text-purple-200 font-bold uppercase tracking-wider text-[10px] border border-white/15 whitespace-nowrap">
+                            {{ empty($readingsDate) || ($liturgicalContext['is_today'] ?? true) ? "Today's Mass Readings" : "Mass Readings" }}
+                        </span>
+                        @if(!empty($readingsDate) && !($liturgicalContext['is_today'] ?? false))
+                            <button type="button" wire:click="todayReadings" class="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 hover:bg-amber-400/30 text-[10px] font-bold border border-amber-400/30 transition-all touch-press cursor-pointer flex items-center gap-1">
+                                <span>Reset Today</span>
+                                <span class="text-[9px]">&times;</span>
+                            </button>
+                        @endif
+                    </div>
+
+                    <!-- Date Navigator (Prev, Date Picker, Next) -->
+                    <div class="flex items-center gap-0.5 bg-white/10 backdrop-blur-md rounded-xl p-0.5 border border-white/15">
+                        <button type="button"
+                                wire:click="previousDayReadings"
+                                title="Previous Day"
+                                class="p-1 rounded-lg hover:bg-white/15 active:scale-95 text-purple-200 hover:text-white transition-all cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+                        </button>
+
+                        <label class="relative flex items-center px-2 py-0.5 text-[11px] font-semibold text-purple-100 hover:text-white cursor-pointer select-none">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3 text-purple-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+                                <span>{{ $liturgicalContext['date_short'] ?? '' }}</span>
+                            </span>
+                            <input type="date"
+                                   value="{{ $liturgicalContext['date_raw'] ?? date('Y-m-d') }}"
+                                   wire:change="setReadingsDate($event.target.value)"
+                                   class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                        </label>
+
+                        <button type="button"
+                                wire:click="nextDayReadings"
+                                title="Next Day"
+                                class="p-1 rounded-lg hover:bg-white/15 active:scale-95 text-purple-200 hover:text-white transition-all cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                        </button>
+                    </div>
                 </div>
 
-                <blockquote class="font-serif italic text-base sm:text-lg leading-relaxed text-purple-50">
-                    &ldquo;{{ $liturgicalContext['verse'] }}&rdquo;
-                </blockquote>
+                <!-- Liturgical Season & Day Title -->
+                <div class="space-y-1">
+                    <div class="flex items-center justify-between text-xs text-purple-300">
+                        <span class="text-purple-300 text-[11px] font-medium flex items-center gap-1.5 flex-shrink-0">
+                            <span class="w-2 h-2 rounded-full {{ strtolower($liturgicalContext['liturgical_color'] ?? '') === 'red' ? 'bg-rose-500' : (in_array(strtolower($liturgicalContext['liturgical_color'] ?? ''), ['white', 'gold']) ? 'bg-amber-400' : (strtolower($liturgicalContext['liturgical_color'] ?? '') === 'purple' ? 'bg-purple-400' : 'bg-emerald-400')) }}"></span>
+                            <span>{{ $liturgicalContext['liturgical_color'] ?? 'Green' }} &bull; {{ $liturgicalContext['season'] ?? 'Ordinary Time' }}</span>
+                        </span>
+                        <span class="text-[11px] text-purple-200/70 font-medium">{{ $liturgicalContext['date_formatted'] ?? '' }}</span>
+                    </div>
 
-                <div class="pt-2 flex items-center justify-between border-t border-white/10 text-xs">
-                    <span class="text-purple-200/80 text-[11px] truncate max-w-[200px]">
-                        Patroness: {{ $liturgicalContext['diocesan_patroness'] }}
-                    </span>
-                    <a href="/study" class="text-white font-bold hover:underline flex items-center gap-1">
-                        <span>Study Library</span>
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </a>
+                    <h3 class="font-serif font-bold text-base sm:text-lg text-white leading-snug">
+                        {{ $liturgicalContext['liturgical_day'] ?? "Today's Liturgy" }}
+                    </h3>
+                    @if(!empty($liturgicalContext['feast_name']) && $liturgicalContext['feast_name'] !== ($liturgicalContext['liturgical_day'] ?? ''))
+                        <p class="text-xs text-purple-200/90 font-medium">
+                            Feast: {{ $liturgicalContext['feast_name'] }} ({{ $liturgicalContext['feast_type'] ?? 'Feast' }})
+                        </p>
+                    @elseif(!empty($liturgicalContext['saint_of_day']))
+                        <p class="text-xs text-purple-200/80 font-medium">
+                            Commemoration: {{ $liturgicalContext['saint_of_day'] }}
+                        </p>
+                    @endif
+                </div>
+
+                <!-- DYNAMIC DAY'S READINGS ROTATING CAROUSEL -->
+                <div x-data="{
+                        currentSlide: 0,
+                        totalSlides: {{ count($liturgicalContext['slides'] ?? []) }},
+                        autoplayTimer: null,
+                        startAutoplay() {
+                            this.stopAutoplay();
+                            if (this.totalSlides > 1) {
+                                this.autoplayTimer = setInterval(() => {
+                                    this.nextSlide();
+                                }, 5000);
+                            }
+                        },
+                        stopAutoplay() {
+                            if (this.autoplayTimer) {
+                                clearInterval(this.autoplayTimer);
+                                this.autoplayTimer = null;
+                            }
+                        },
+                        nextSlide() {
+                            this.currentSlide = (this.currentSlide + 1) % this.totalSlides;
+                        },
+                        prevSlide() {
+                            this.currentSlide = (this.currentSlide - 1 + this.totalSlides) % this.totalSlides;
+                        },
+                        goToSlide(index) {
+                            this.currentSlide = index;
+                            this.startAutoplay();
+                        }
+                     }"
+                     x-init="startAutoplay()"
+                     @mouseenter="stopAutoplay()"
+                     @mouseleave="startAutoplay()"
+                     class="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2 relative transition-all">
+
+                    @foreach($liturgicalContext['slides'] ?? [] as $index => $slide)
+                        <div x-show="currentSlide === {{ $index }}"
+                             x-transition:enter="transition ease-out duration-300 transform"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             class="space-y-1 min-h-[64px] flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="text-purple-300 font-bold flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                                    <span>{{ $slide['type'] }}</span>
+                                </span>
+                                <span class="text-purple-200/90 font-medium">{{ $slide['citation'] }}</span>
+                            </div>
+                            <blockquote class="font-serif italic text-xs sm:text-sm text-purple-50 leading-relaxed">
+                                &ldquo;{{ $slide['highlight'] }}&rdquo;
+                            </blockquote>
+                        </div>
+                    @endforeach
+
+                    <!-- Carousel Controls & Dots -->
+                    @if(count($liturgicalContext['slides'] ?? []) > 1)
+                        <div class="flex items-center justify-between pt-1.5 border-t border-white/10 text-[10px] text-purple-300/80">
+                            <!-- Indicator Dots -->
+                            <div class="flex items-center gap-1.5">
+                                @foreach($liturgicalContext['slides'] ?? [] as $index => $slide)
+                                    <button type="button"
+                                            @click="goToSlide({{ $index }})"
+                                            class="h-1.5 rounded-full transition-all cursor-pointer"
+                                            :class="currentSlide === {{ $index }} ? 'w-4 bg-purple-400' : 'w-1.5 bg-white/25 hover:bg-white/40'"
+                                            title="{{ $slide['type'] }}">
+                                    </button>
+                                @endforeach
+                            </div>
+
+                            <!-- Next / Prev Controls -->
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" @click="prevSlide(); stopAutoplay()" title="Previous Reading" class="p-1 rounded hover:bg-white/10 text-purple-300 hover:text-white transition-colors cursor-pointer">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+                                </button>
+                                <span class="text-[10px] text-purple-300/70 select-none font-medium" x-text="`${currentSlide + 1} of ${totalSlides}`"></span>
+                                <button type="button" @click="nextSlide(); stopAutoplay()" title="Next Reading" class="p-1 rounded hover:bg-white/10 text-purple-300 hover:text-white transition-colors cursor-pointer">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Subtle & Minimal Book Citations with Action Below -->
+                <div class="pt-1.5 space-y-2.5">
+                    <!-- Minimalist Subtle Scripture Citations (No heavy clunky boxes) -->
+                    <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-purple-200/70 font-normal">
+                        <span class="hover:text-white transition-colors">{{ $liturgicalContext['readings']['reading_1']['citation'] ?? '1st Reading' }}</span>
+                        <span class="text-purple-400/30 text-[10px]">&bull;</span>
+                        <span class="hover:text-white transition-colors">{{ $liturgicalContext['readings']['psalm']['citation'] ?? 'Psalm' }}</span>
+                        @if(!empty($liturgicalContext['readings']['reading_2']))
+                            <span class="text-purple-400/30 text-[10px]">&bull;</span>
+                            <span class="hover:text-white transition-colors">{{ $liturgicalContext['readings']['reading_2']['citation'] }}</span>
+                        @endif
+                        <span class="text-purple-400/30 text-[10px]">&bull;</span>
+                        <span class="font-semibold text-purple-100 hover:text-white transition-colors">{{ $liturgicalContext['readings']['gospel']['citation'] ?? 'Gospel' }}</span>
+                    </div>
+
+                    <!-- Full Readings Button placed neatly below -->
+                    <button type="button"
+                            wire:click="openReadingsModal"
+                            class="w-full py-2.5 bg-white/15 hover:bg-white/25 active:scale-[0.99] text-white text-xs font-bold rounded-xl transition-all touch-press flex items-center justify-center gap-1.5 cursor-pointer border border-white/20 shadow-xs">
+                        <span>{{ empty($readingsDate) || ($liturgicalContext['is_today'] ?? true) ? "View Full Today's Mass Readings" : "View Full Mass Readings (" . ($liturgicalContext['date_short'] ?? '') . ")" }}</span>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                    </button>
                 </div>
             </div>
+
+            <!-- LIVEWIRE MANAGED MODAL: FULL CATHOLIC MASS READINGS -->
+            @if($showReadingsModal)
+                <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+                     wire:click.self="closeReadingsModal">
+                    <div class="bg-white dark:bg-[#121826] text-slate-900 dark:text-white rounded-3xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-purple-500/30">
+                        <!-- Modal Header with Date Navigation -->
+                        <div class="p-4 sm:p-5 bg-gradient-to-r from-purple-900 to-indigo-900 text-white flex items-start justify-between gap-3">
+                            <div class="space-y-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold uppercase tracking-wider">
+                                        Mass Readings
+                                    </span>
+                                    <span class="text-xs text-purple-200">{{ $liturgicalContext['liturgical_color'] ?? 'Green' }} &bull; {{ $liturgicalContext['season'] ?? 'Ordinary Time' }}</span>
+                                </div>
+                                <h3 class="font-serif font-bold text-base sm:text-lg leading-snug">{{ $liturgicalContext['liturgical_day'] ?? "Today's Liturgy" }}</h3>
+                                <p class="text-[11px] text-purple-200/80">{{ $liturgicalContext['date_formatted'] ?? '' }}</p>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 flex-shrink-0">
+                                <!-- Modal Date Controls -->
+                                <button type="button" wire:click="previousDayReadings" title="Previous Day" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all cursor-pointer">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+                                </button>
+                                <button type="button" wire:click="nextDayReadings" title="Next Day" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all cursor-pointer">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                                </button>
+                                <button type="button" wire:click="closeReadingsModal" class="text-white/80 hover:text-white p-1.5 rounded-full text-lg leading-none cursor-pointer">
+                                    &times;
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Readings Navigation Tabs -->
+                        <div class="flex border-b border-slate-200 dark:border-slate-800 text-xs font-bold overflow-x-auto no-scrollbar bg-slate-50 dark:bg-[#0d121f]">
+                            <button type="button" wire:click="setReadingsTab('reading1')" class="px-3.5 py-2.5 whitespace-nowrap transition-colors cursor-pointer {{ $readingsTab === 'reading1' ? 'border-b-2 border-purple-600 text-purple-600 dark:text-purple-400 bg-white dark:bg-[#121826]' : 'text-slate-500 hover:text-slate-800' }}">
+                                1st Reading
+                            </button>
+                            <button type="button" wire:click="setReadingsTab('psalm')" class="px-3.5 py-2.5 whitespace-nowrap transition-colors cursor-pointer {{ $readingsTab === 'psalm' ? 'border-b-2 border-purple-600 text-purple-600 dark:text-purple-400 bg-white dark:bg-[#121826]' : 'text-slate-500 hover:text-slate-800' }}">
+                                Psalm
+                            </button>
+                            @if(!empty($liturgicalContext['readings']['reading_2']))
+                                <button type="button" wire:click="setReadingsTab('reading2')" class="px-3.5 py-2.5 whitespace-nowrap transition-colors cursor-pointer {{ $readingsTab === 'reading2' ? 'border-b-2 border-purple-600 text-purple-600 dark:text-purple-400 bg-white dark:bg-[#121826]' : 'text-slate-500 hover:text-slate-800' }}">
+                                    2nd Reading
+                                </button>
+                            @endif
+                            <button type="button" wire:click="setReadingsTab('gospel')" class="px-3.5 py-2.5 whitespace-nowrap transition-colors cursor-pointer {{ $readingsTab === 'gospel' ? 'border-b-2 border-purple-600 text-purple-600 dark:text-purple-400 bg-white dark:bg-[#121826]' : 'text-slate-500 hover:text-slate-800' }}">
+                                Holy Gospel
+                            </button>
+                        </div>
+
+                        <!-- Readings Scrollable Content -->
+                        <div class="p-5 overflow-y-auto space-y-4 flex-1 text-sm leading-relaxed">
+                            @if($readingsTab === 'reading1')
+                                <!-- 1st Reading -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 font-bold">
+                                        <span>First Reading</span>
+                                        <span>{{ $liturgicalContext['readings']['reading_1']['citation'] ?? '' }}</span>
+                                    </div>
+                                    <p class="text-slate-700 dark:text-slate-200 font-serif leading-relaxed text-sm">
+                                        {{ $liturgicalContext['readings']['reading_1']['text'] ?? '' }}
+                                    </p>
+                                </div>
+                            @elseif($readingsTab === 'psalm')
+                                <!-- Psalm -->
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 font-bold">
+                                        <span>Responsorial Psalm</span>
+                                        <span>{{ $liturgicalContext['readings']['psalm']['citation'] ?? '' }}</span>
+                                    </div>
+                                    <div class="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-xs font-semibold text-purple-900 dark:text-purple-200">
+                                        <span class="font-bold uppercase text-[10px] block text-purple-600 dark:text-purple-400">Response:</span>
+                                        &ldquo;{{ $liturgicalContext['readings']['psalm']['response'] ?? '' }}&rdquo;
+                                    </div>
+                                    <p class="text-slate-700 dark:text-slate-200 font-serif leading-relaxed text-sm whitespace-pre-line">
+                                        {{ $liturgicalContext['readings']['psalm']['text'] ?? '' }}
+                                    </p>
+                                </div>
+                            @elseif($readingsTab === 'reading2' && !empty($liturgicalContext['readings']['reading_2']))
+                                <!-- 2nd Reading -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 font-bold">
+                                        <span>Second Reading</span>
+                                        <span>{{ $liturgicalContext['readings']['reading_2']['citation'] }}</span>
+                                    </div>
+                                    <p class="text-slate-700 dark:text-slate-200 font-serif leading-relaxed text-sm">
+                                        {{ $liturgicalContext['readings']['reading_2']['text'] }}
+                                    </p>
+                                </div>
+                            @else
+                                <!-- Gospel -->
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 font-bold">
+                                        <span>Holy Gospel</span>
+                                        <span>{{ $liturgicalContext['readings']['gospel']['citation'] ?? '' }}</span>
+                                    </div>
+                                    @if(!empty($liturgicalContext['readings']['acclamation']))
+                                        <div class="text-[11px] italic text-slate-500 dark:text-slate-400 border-l-2 border-purple-500 pl-2">
+                                            Gospel Acclamation: &ldquo;{{ $liturgicalContext['readings']['acclamation']['verse'] }}&rdquo; ({{ $liturgicalContext['readings']['acclamation']['citation'] }})
+                                        </div>
+                                    @endif
+                                    <p class="text-slate-700 dark:text-slate-200 font-serif leading-relaxed text-sm">
+                                        {{ $liturgicalContext['readings']['gospel']['text'] ?? '' }}
+                                    </p>
+                                    @if(!empty($liturgicalContext['readings']['reflection']))
+                                        <div class="mt-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs">
+                                            <span class="font-bold text-purple-600 dark:text-purple-400 block mb-1">Spiritual Reflection:</span>
+                                            <p class="text-slate-600 dark:text-slate-300">{{ $liturgicalContext['readings']['reflection'] }}</p>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Modal Footer -->
+                        <div class="p-3 bg-slate-50 dark:bg-[#0d121f] border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                            <button type="button" wire:click="closeReadingsModal" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- 3. FORMATION PROGRESS METRICS (CLEAN RICH SURFACE) -->
@@ -318,28 +595,65 @@
             </div>
         </div>
 
-        <!-- 4. TODAY'S DAILY FORMATION ("LEARN IN 5 MINUTES") -->
-        @if($microLesson)
-            <div class="p-5 rounded-2xl bg-white dark:bg-[#121826] border-2 border-purple-500/40 dark:border-purple-600/40 space-y-3 shadow-sm">
-                <div class="flex items-center justify-between text-xs">
-                    <span class="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 font-bold uppercase text-[10px] border border-purple-200 dark:border-purple-800">
-                        Today's Formation
+        <!-- 4. TODAY'S DAILY FORMATION / CONTINUE YOUR FORMATION -->
+        @php
+            $displayLesson = $ongoingLesson ?? $microLesson;
+            $isOngoing = !is_null($ongoingLesson);
+        @endphp
+
+        @if($displayLesson)
+            <div class="p-5 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-3 shadow-xs">
+                <!-- Header row: Status badge + Read duration -->
+                <div class="flex items-center justify-between gap-2">
+                    <span class="px-2.5 py-0.5 rounded-lg {{ $isOngoing ? 'bg-purple-600 text-white' : 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800' }} font-bold uppercase text-[10px] tracking-wider whitespace-nowrap">
+                        @if($isOngoing)
+                            Continue Your Formation
+                        @else
+                            Today's Formation
+                        @endif
                     </span>
-                    <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Learn in 5 Minutes
-                    </span>
+
+                    <div class="flex items-center gap-1 text-slate-400 dark:text-slate-500 text-[11px] font-medium flex-shrink-0">
+                        @if($isOngoing)
+                            <span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span>
+                            <span class="text-purple-600 dark:text-purple-400 font-semibold">In Progress</span>
+                        @else
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>{{ $displayLesson->estimated_read_minutes ?? 5 }} min</span>
+                        @endif
+                    </div>
                 </div>
 
-                <div>
-                    <h3 class="text-base font-bold font-serif text-slate-900 dark:text-white leading-snug">{{ $microLesson->title }}</h3>
-                    <p class="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 mt-1">{{ $microLesson->summary ?? $microLesson->subheading }}</p>
+                <!-- Track Name & Lesson Title -->
+                <div class="space-y-1">
+                    @if($displayLesson->category?->name)
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                            {{ $displayLesson->category->name }}
+                        </div>
+                    @endif
+                    <h3 class="text-base font-bold font-serif text-slate-900 dark:text-white leading-snug">
+                        {{ $displayLesson->title }}
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                        {{ $displayLesson->summary ?? $displayLesson->subheading }}
+                    </p>
                 </div>
 
+                <!-- Footer row: XP reward badge + Action button -->
                 <div class="flex items-center justify-between pt-1">
-                    <span class="text-[11px] text-purple-600 dark:text-purple-400 font-bold">+25 Formation XP</span>
-                    <a href="/lesson/{{ $microLesson->id }}" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors touch-press shadow-sm">
-                        {{ $microLessonCompleted ? 'Review Micro-Lesson' : 'Start Micro-Lesson →' }}
+                    <span class="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/60 text-[11px] text-purple-700 dark:text-purple-300 font-bold">
+                        {{ $isOngoing ? 'Formation in progress' : '+25 Formation XP' }}
+                    </span>
+
+                    <a href="/lesson/{{ $displayLesson->id }}" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors touch-press shadow-xs flex items-center gap-1.5 flex-shrink-0">
+                        @if($isOngoing)
+                            <span>Continue Lesson</span>
+                        @elseif($microLessonCompleted)
+                            <span>Review Micro-Lesson</span>
+                        @else
+                            <span>Start Micro-Lesson</span>
+                        @endif
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
                     </a>
                 </div>
             </div>
@@ -352,113 +666,109 @@
                     <h3 class="text-sm font-bold text-slate-900 dark:text-white">Saints &amp; African Heritage</h3>
                     <p class="text-[11px] text-slate-500">Patrons and witnesses of the Universal Church</p>
                 </div>
-                <a href="/study" class="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline">Explore All &rarr;</a>
+                <a href="{{ route('saints.index') }}" class="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1">
+                    <span>Explore All</span>
+                    <span>&rarr;</span>
+                </a>
             </div>
 
             <!-- Horizontal Scroll Rail -->
             <div class="flex gap-3 overflow-x-auto hide-scrollbar pb-1 -mx-4 px-4">
-                <!-- Saint Card 1: St. Theresa -->
-                <div class="flex-shrink-0 w-60 p-4 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-2 flex flex-col justify-between">
-                    <div class="space-y-1">
-                        <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                            Diocesan Cathedral Patroness
-                        </span>
-                        <h4 class="font-bold text-slate-900 dark:text-white text-xs mt-1">St. Theresa of Lisieux</h4>
-                        <p class="text-[11px] text-slate-500 line-clamp-2">Doctor of the Church &bull; The "Little Way" of spiritual childhood and trust.</p>
+                @forelse($featuredSaints as $saint)
+                    <div class="flex-shrink-0 w-64 p-4 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-2 flex flex-col justify-between shadow-xs hover:border-purple-300 dark:hover:border-purple-800/60 transition-all">
+                        <div class="space-y-1">
+                            <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase whitespace-nowrap
+                                {{ $saint->slug === 'st-theresa-of-lisieux' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : ($saint->is_african_heritage ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800' : 'bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800') }}">
+                                {{ $saint->slug === 'st-theresa-of-lisieux' ? 'Diocesan Cathedral Patroness' : ($saint->is_african_heritage ? 'African Catholic Heritage' : 'Universal Doctor') }}
+                            </span>
+                            <h4 class="font-bold text-slate-900 dark:text-white text-xs mt-1">{{ $saint->name }}</h4>
+                            <p class="text-[11px] text-slate-500 line-clamp-2">{{ $saint->title_designation }} &bull; {{ $saint->biography }}</p>
+                        </div>
+                        <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
+                            <span class="text-slate-400">Feast: {{ $saint->feast_day_month_day ? \Carbon\Carbon::createFromFormat('m-d', $saint->feast_day_month_day)->format('M j') : 'Oct 1' }}</span>
+                            <a href="{{ route('saints.show', $saint->slug) }}" class="text-purple-600 dark:text-purple-400 font-bold hover:underline">Learn &rarr;</a>
+                        </div>
                     </div>
-                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
-                        <span class="text-slate-400">Feast: Oct 1</span>
-                        <a href="/study" class="text-purple-600 font-bold hover:underline">Learn &rarr;</a>
-                    </div>
-                </div>
-
-                <!-- Saint Card 2: Uganda Martyrs -->
-                <div class="flex-shrink-0 w-60 p-4 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-2 flex flex-col justify-between">
-                    <div class="space-y-1">
-                        <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800">
-                            African Youth Patrons
-                        </span>
-                        <h4 class="font-bold text-slate-900 dark:text-white text-xs mt-1">St. Charles Lwanga &amp; Companions</h4>
-                        <p class="text-[11px] text-slate-500 line-clamp-2">Martyrs of Uganda &bull; Courageous witness to Christian faith and purity.</p>
-                    </div>
-                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
-                        <span class="text-slate-400">Feast: Jun 3</span>
-                        <a href="/study" class="text-purple-600 font-bold hover:underline">Learn &rarr;</a>
-                    </div>
-                </div>
-
-                <!-- Saint Card 3: St. Bakhita -->
-                <div class="flex-shrink-0 w-60 p-4 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-2 flex flex-col justify-between">
-                    <div class="space-y-1">
-                        <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                            African Witness of Hope
-                        </span>
-                        <h4 class="font-bold text-slate-900 dark:text-white text-xs mt-1">St. Josephine Bakhita</h4>
-                        <p class="text-[11px] text-slate-500 line-clamp-2">Sudanese virgin &bull; Transformative journey from slavery to divine freedom.</p>
-                    </div>
-                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
-                        <span class="text-slate-400">Feast: Feb 8</span>
-                        <a href="/study" class="text-purple-600 font-bold hover:underline">Learn &rarr;</a>
-                    </div>
-                </div>
+                @empty
+                    <div class="p-4 text-xs text-slate-400">No saints loaded.</div>
+                @endforelse
             </div>
         </div>
 
         <!-- 6. RALLY PREPARATION (LIVINGSTONE DIOCESAN YOUTH RALLY 2026) -->
-        <div class="p-5 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 border border-purple-200 dark:border-purple-900/60 space-y-3">
-            <div class="flex items-center justify-between">
-                <span class="px-2.5 py-0.5 rounded-full bg-purple-600 text-white font-bold uppercase text-[10px] tracking-wider">
-                    Diocesan Rally 2026
-                </span>
-                <span class="text-[11px] text-purple-700 dark:text-purple-300 font-semibold">Livingstone Diocese</span>
-            </div>
-
-            <div>
-                <h4 class="text-base font-bold font-serif text-slate-900 dark:text-white">Prepare for the Rally</h4>
-                <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
-                    Represent your parish in the upcoming Diocesan Bible &amp; Catechetical Quiz Tournament.
-                </p>
-            </div>
-
-            <div class="pt-1 flex gap-2">
-                <a href="/quiz?tab=compete" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs text-center transition-colors touch-press shadow-sm">
-                    Enter Rally Lobby &rarr;
-                </a>
-            </div>
-        </div>
-
-        <!-- 7. CONTINUE LEARNING & RECOMMENDED FORMATION -->
-        @if($continueLesson)
-            <div class="p-4 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-3">
+        @if($rallyPrep)
+            <div class="p-5 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 border border-purple-200 dark:border-purple-900/60 space-y-3">
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Continue Your Formation</span>
-                    <span class="text-[11px] text-purple-600 font-semibold">{{ $continueLesson->category?->name }}</span>
+                    <span class="px-2.5 py-0.5 rounded-full bg-purple-600 text-white font-bold uppercase text-[10px] tracking-wider">
+                        {{ $rallyPrep->title }}
+                    </span>
+                    <span class="text-[11px] text-purple-700 dark:text-purple-300 font-semibold">Catholic Diocese of Livingstone</span>
                 </div>
 
                 <div>
-                    <h4 class="font-bold font-serif text-slate-900 dark:text-white text-sm">{{ $continueLesson->title }}</h4>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{{ $continueLesson->subheading }}</p>
+                    <h4 class="text-base font-bold font-serif text-slate-900 dark:text-white">Prepare for the Rally</h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                        {{ $rallyPrep->description ?? 'Represent your parish in the upcoming Diocesan Bible & Catechetical Quiz Tournament.' }}
+                    </p>
                 </div>
 
-                <a href="/lesson/{{ $continueLesson->id }}" class="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-xs block text-center transition-colors touch-press">
-                    Resume Lesson &rarr;
-                </a>
+                <div class="pt-1 flex gap-2">
+                    <a href="/quiz?tab=compete" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs text-center transition-colors touch-press shadow-sm">
+                        Enter Rally Lobby &rarr;
+                    </a>
+                </div>
             </div>
         @endif
 
-        <!-- 8. PARISH COMMUNITY FORMATION SPRINT -->
-        <div class="p-4 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                    Parish Formation Challenge
-                </span>
-                <span class="text-[10px] font-bold text-slate-400">{{ $user->parish?->name ?? 'Parish Challenge' }}</span>
+        <!-- 7. DAILY SPIRITUAL BREAD -->
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-purple-950 to-indigo-950 text-white border border-purple-800/40 space-y-3 shadow-sm relative overflow-hidden">
+            <div class="absolute -right-4 -bottom-4 opacity-10 pointer-events-none">
+                <svg class="w-32 h-32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
             </div>
 
-            <h4 class="font-bold text-slate-900 dark:text-white text-xs">{{ $activeParishChallenge?->title ?? '5,000 XP Parish Collective Sprint' }}</h4>
-            <p class="text-xs text-slate-500">{{ $activeParishChallenge?->description ?? 'Complete quizzes and lessons to help our parish climb the diocesan leaderboard.' }}</p>
+            <div class="relative z-10 space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <span class="px-2.5 py-0.5 rounded-full bg-white/10 text-purple-200 text-[10px] font-bold uppercase tracking-wider border border-white/15">
+                        Daily Spiritual Bread
+                    </span>
+                    <span class="text-[11px] text-purple-300 font-semibold">{{ $liturgicalContext['verse_ref'] ?? 'Holy Scripture' }}</span>
+                </div>
+
+                <div>
+                    <blockquote class="font-serif italic text-xs sm:text-sm text-purple-50 leading-relaxed">
+                        &ldquo;{{ $liturgicalContext['verse'] ?? 'Thy word is a lamp unto my feet, and a light unto my path.' }}&rdquo;
+                    </blockquote>
+                </div>
+
+                <div class="pt-2 flex items-center justify-between border-t border-white/10 text-xs">
+                    <span class="text-purple-200/80 text-[11px] truncate max-w-[200px]">
+                        Patroness: {{ $liturgicalContext['diocesan_patroness'] ?? 'St. Theresa of Lisieux' }}
+                    </span>
+                    <a href="/study" class="text-white font-bold hover:underline flex items-center gap-1">
+                        <span>Explore All Tracks</span>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                    </a>
+                </div>
+            </div>
         </div>
+
+        <!-- 8. PARISH COMMUNITY FORMATION SPRINT -->
+        @if($activeParishChallenge)
+            <div class="p-4 rounded-2xl bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        Parish Formation Challenge
+                    </span>
+                    <span class="text-[10px] font-bold text-slate-400">{{ $user->parish?->name ?? 'Parish Challenge' }}</span>
+                </div>
+
+                <h4 class="font-bold text-slate-900 dark:text-white text-xs">{{ $activeParishChallenge->title }}</h4>
+                <p class="text-xs text-slate-500">{{ $activeParishChallenge->description }}</p>
+            </div>
+        @endif
     @endif
 
 </div>

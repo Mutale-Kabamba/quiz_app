@@ -2,26 +2,48 @@
 
     <!-- TOAST FEEDBACK NOTIFICATIONS -->
     @if($successMessage)
-        <div class="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-200 font-semibold flex items-center justify-between animate-fade-in">
-            <div class="flex items-center gap-2">
-                <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                </svg>
+        <div x-data="{ show: true }" 
+             x-show="show" 
+             x-init="setTimeout(() => { show = false; $wire.set('successMessage', null); }, 2200)"
+             x-transition:enter="transition ease-out duration-200 transform"
+             x-transition:enter-start="opacity-0 -translate-y-2 scale-98"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             x-transition:leave="transition ease-in duration-150 transform"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 -translate-y-2 scale-98"
+             class="p-3 bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/80 rounded-2xl text-xs text-emerald-900 dark:text-emerald-100 font-semibold flex items-center justify-between shadow-lg shadow-emerald-500/5 backdrop-blur-sm">
+            <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
                 <span>{{ $successMessage }}</span>
             </div>
-            <button wire:click="$set('successMessage', null)" class="text-emerald-500 hover:text-emerald-700">&times;</button>
+            <button wire:click="$set('successMessage', null)" @click="show = false" class="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 text-lg font-bold p-1 rounded-lg transition-colors leading-none">&times;</button>
         </div>
     @endif
 
     @if($errorMessage)
-        <div class="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-xs text-red-800 dark:text-red-200 font-semibold flex items-center justify-between animate-fade-in">
-            <div class="flex items-center gap-2">
-                <svg class="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
+        <div x-data="{ show: true }" 
+             x-show="show" 
+             x-init="setTimeout(() => { show = false; $wire.set('errorMessage', null); }, 3000)"
+             x-transition:enter="transition ease-out duration-200 transform"
+             x-transition:enter-start="opacity-0 -translate-y-2 scale-98"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             x-transition:leave="transition ease-in duration-150 transform"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 -translate-y-2 scale-98"
+             class="p-3 bg-rose-500/10 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700/80 rounded-2xl text-xs text-rose-900 dark:text-rose-100 font-semibold flex items-center justify-between shadow-lg shadow-rose-500/5 backdrop-blur-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
                 <span>{{ $errorMessage }}</span>
             </div>
-            <button wire:click="$set('errorMessage', null)" class="text-red-500 hover:text-red-700">&times;</button>
+            <button wire:click="$set('errorMessage', null)" @click="show = false" class="text-rose-500 hover:text-rose-700 dark:hover:text-rose-300 text-lg font-bold p-1 rounded-lg transition-colors">&times;</button>
         </div>
     @endif
 

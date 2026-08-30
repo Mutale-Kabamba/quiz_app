@@ -30,6 +30,8 @@ class StudyHub extends Component
 
     public ?string $successMessage = null;
 
+    public bool $showAllSeries = false;
+
     public function mount(mixed $selectedCategoryId = null)
     {
         if ($selectedCategoryId !== null && $selectedCategoryId !== '') {
@@ -67,6 +69,11 @@ class StudyHub extends Component
     public function setAdminTab(string $tab)
     {
         $this->adminTab = $tab;
+    }
+
+    public function toggleShowAllSeries()
+    {
+        $this->showAllSeries = !$this->showAllSeries;
     }
 
     public function toggleLessonStatus(string $lessonId)
@@ -178,7 +185,7 @@ class StudyHub extends Component
         }
 
         // =========================================================================
-        // C. YOUTH LEARNER FORMATION STUDY HUB
+        // C. YOUTH LEARNER FORMATION STUDY HUB (GROUPED BY SERIES)
         // =========================================================================
         $categories = Category::withCount(['lessons' => fn($q) => $q->where('status', 'published')])
             ->orderBy('display_order')
@@ -201,14 +208,65 @@ class StudyHub extends Component
             });
         }
 
-        $lessons = $lessonsQuery->get();
+        $allLessons = $lessonsQuery->get();
         $flashcardStats = app(FlashcardService::class)->getUserStats($user);
         $categoryProgress = app(LearningProgressService::class)->getCategoryProgress($user);
+
+        // Group lessons into Series
+        $seriesCollection = collect();
+        $grouped = $allLessons->groupBy(function (Lesson $lesson) {
+            if (!empty($lesson->series_identifier)) {
+                return $lesson->series_identifier;
+            }
+            if (preg_match('/^(.*?)(?:\s*\((?:Part|Lesson)\s*\d+\)|\s+(?:Part|Lesson)\s*\d+)/i', $lesson->title, $matches)) {
+                return trim($matches[1]);
+            }
+            return 'standalone_' . $lesson->id;
+        });
+
+        foreach ($grouped as $key => $groupLessons) {
+            $firstLesson = $groupLessons->first();
+            $category = $firstLesson->category;
+
+            // Clean series name
+            if (preg_match('/^(.*?)(?:\s*\((?:Part|Lesson)\s*\d+\)|\s+(?:Part|Lesson)\s*\d+)/i', $firstLesson->title, $matches)) {
+                $seriesName = trim($matches[1]);
+            } elseif (!empty($firstLesson->series_identifier) && !str_starts_with($key, 'standalone_')) {
+                $seriesName = ucwords(str_replace(['_', '-'], ' ', $firstLesson->series_identifier));
+            } else {
+                $seriesName = $firstLesson->title;
+            }
+
+            $totalReadMinutes = $groupLessons->sum('estimated_read_minutes') ?: ($groupLessons->count() * 5);
+            $completedCount = $groupLessons->filter(fn($l) => $l->progress->first()?->is_completed)->count();
+            $totalCount = $groupLessons->count();
+
+            $seriesCollection->push([
+                'key' => md5($key . '_' . ($category?->id ?? 0)),
+                'series_identifier' => $firstLesson->series_identifier ?? $key,
+                'name' => $seriesName,
+                'category' => $category,
+                'category_name' => $category?->name ?? 'Faith Formation',
+                'lessons_count' => $totalCount,
+                'total_read_minutes' => $totalReadMinutes,
+                'completed_count' => $completedCount,
+                'is_completed' => ($completedCount === $totalCount && $totalCount > 0),
+                'in_progress' => ($completedCount > 0 && $completedCount < $totalCount),
+                'lessons' => $groupLessons->sortBy('display_order')->values(),
+                'summary' => $firstLesson->summary ?? $firstLesson->subheading,
+                'citation' => $firstLesson->catechism_citations ?? $firstLesson->scripture_citations,
+            ]);
+        }
+
+        $totalSeriesCount = $seriesCollection->count();
+        $displayedSeries = $this->showAllSeries ? $seriesCollection : $seriesCollection->take(5);
 
         return view('livewire.study-hub', [
             'user' => $user,
             'categories' => $categories,
-            'lessons' => $lessons,
+            'lessons' => $allLessons,
+            'seriesList' => $displayedSeries,
+            'totalSeriesCount' => $totalSeriesCount,
             'flashcardStats' => $flashcardStats,
             'categoryProgress' => $categoryProgress,
         ])->layout('components.layouts.app', ['title' => 'Catechetical Study Hub • Diocese of Livingstone']);

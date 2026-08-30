@@ -2,26 +2,48 @@
 
     <!-- TOAST FEEDBACK NOTIFICATIONS -->
     @if($successMessage)
-        <div class="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-200 font-semibold flex items-center justify-between animate-fade-in shadow-sm">
-            <div class="flex items-center gap-2">
-                <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                </svg>
+        <div x-data="{ show: true }" 
+             x-show="show" 
+             x-init="setTimeout(() => { show = false; $wire.set('successMessage', null); }, 2200)"
+             x-transition:enter="transition ease-out duration-200 transform"
+             x-transition:enter-start="opacity-0 -translate-y-2 scale-98"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             x-transition:leave="transition ease-in duration-150 transform"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 -translate-y-2 scale-98"
+             class="p-3 bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/80 rounded-2xl text-xs text-emerald-900 dark:text-emerald-100 font-semibold flex items-center justify-between shadow-lg shadow-emerald-500/5 backdrop-blur-sm">
+            <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
                 <span>{{ $successMessage }}</span>
             </div>
-            <button wire:click="$set('successMessage', null)" class="text-emerald-500 hover:text-emerald-700 text-base font-bold">&times;</button>
+            <button wire:click="$set('successMessage', null)" @click="show = false" class="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 text-lg font-bold p-1 rounded-lg transition-colors leading-none">&times;</button>
         </div>
     @endif
 
     @if($errorMessage)
-        <div class="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-xs text-red-800 dark:text-red-200 font-semibold flex items-center justify-between animate-fade-in shadow-sm">
-            <div class="flex items-center gap-2">
-                <svg class="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
+        <div x-data="{ show: true }" 
+             x-show="show" 
+             x-init="setTimeout(() => { show = false; $wire.set('errorMessage', null); }, 3000)"
+             x-transition:enter="transition ease-out duration-200 transform"
+             x-transition:enter-start="opacity-0 -translate-y-2 scale-98"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             x-transition:leave="transition ease-in duration-150 transform"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 -translate-y-2 scale-98"
+             class="p-3 bg-rose-500/10 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700/80 rounded-2xl text-xs text-rose-900 dark:text-rose-100 font-semibold flex items-center justify-between shadow-lg shadow-rose-500/5 backdrop-blur-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
                 <span>{{ $errorMessage }}</span>
             </div>
-            <button wire:click="$set('errorMessage', null)" class="text-red-500 hover:text-red-700 text-base font-bold">&times;</button>
+            <button wire:click="$set('errorMessage', null)" @click="show = false" class="text-rose-500 hover:text-rose-700 dark:hover:text-rose-300 text-lg font-bold p-1 rounded-lg transition-colors">&times;</button>
         </div>
     @endif
 
@@ -162,13 +184,13 @@
             type="button" 
             wire:click="setTab('lessons')"
             class="px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors {{ $activeTab === 'lessons' ? 'bg-purple-600 text-white font-bold shadow-sm' : 'bg-white dark:bg-[#121826] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50' }}">
-            Lessons ({{ $lessons->total() }})
+            Lessons ({{ $totalLessonsCount }})
         </button>
         <button 
             type="button" 
             wire:click="setTab('questions')"
             class="px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors {{ $activeTab === 'questions' ? 'bg-purple-600 text-white font-bold shadow-sm' : 'bg-white dark:bg-[#121826] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50' }}">
-            Q&amp;A Bank ({{ $questions->total() }})
+            Q&amp;A Bank ({{ $totalQuestionsCount }})
         </button>
         <button 
             type="button" 
@@ -348,33 +370,33 @@
                 </div>
             </div>
 
-            <div class="space-y-2">
+            <div class="space-y-2.5">
                 @forelse($parishes as $parish)
-                    <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between shadow-xs">
-                        <div class="space-y-0.5">
+                    <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2.5 shadow-xs">
+                        <div class="space-y-1">
                             <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-mono text-[10px] font-bold">
+                                <span class="px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-mono text-[10px] font-bold flex-shrink-0">
                                     {{ $parish->code }}
                                 </span>
-                                <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ $parish->name }}</h3>
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">{{ $parish->name }}</h3>
                             </div>
-                            <p class="text-xs text-slate-500">
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
                                 Deanery: <span class="font-medium text-slate-700 dark:text-slate-300">{{ $parish->deanery?->name ?? 'Unassigned' }}</span> &bull; {{ $parish->youth_count }} Youth members
                             </p>
                         </div>
 
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
                             <button 
                                 type="button" 
                                 wire:click="editParish({{ $parish->id }})"
-                                class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors">
+                                class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors">
                                 Edit
                             </button>
                             <button 
                                 type="button" 
                                 wire:confirm="Are you sure you want to delete '{{ $parish->name }}'?"
                                 wire:click="deleteParish({{ $parish->id }})"
-                                class="px-3 py-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-semibold rounded-xl transition-colors">
+                                class="px-3 py-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 text-xs font-semibold rounded-xl transition-colors">
                                 Delete
                             </button>
                         </div>
@@ -449,10 +471,10 @@
         </div>
     @endif
 
-    <!-- TAB 5: STUDY LESSONS CRUD -->
+    <!-- TAB 5: STUDY LESSONS (FORMATION TRACK SUMMARIES) -->
     @if($activeTab === 'lessons')
         <div class="space-y-3 animate-fade-in">
-            <!-- Search & Filter Controls -->
+            <!-- Search & Actions Toolbar -->
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
                     <div class="relative flex-1">
@@ -460,7 +482,7 @@
                         <input 
                             type="text" 
                             wire:model.live.debounce.300ms="searchQuery" 
-                            placeholder="Search lessons by title or content..."
+                            placeholder="Filter lessons by track..."
                             class="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-600 shadow-xs">
                     </div>
 
@@ -495,93 +517,103 @@
                 </div>
             </div>
 
-            <!-- Lessons Stream -->
+            <!-- Track Lesson Summary Cards -->
             <div class="space-y-3">
-                @forelse($lessons as $lesson)
+                @forelse($trackLessonSummaries as $summary)
                     <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 shadow-xs">
-                        <!-- Top Metadata Row -->
-                        <div class="flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-1.5 min-w-0">
-                                <span class="px-2.5 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[11px] font-bold truncate max-w-[200px]">
-                                    {{ $lesson->category?->name ?? 'Formation Track' }}
+                        <!-- Top Row: Track Name & Counts -->
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="px-2.5 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold">
+                                        Formation Track
+                                    </span>
+                                </div>
+                                <h4 class="font-bold text-slate-900 dark:text-white text-base">
+                                    {{ $summary->category?->name ?? 'Formation Track' }}
+                                </h4>
+                            </div>
+
+                            <div class="text-right flex-shrink-0">
+                                <div class="text-lg font-black text-purple-700 dark:text-purple-300 font-serif">
+                                    {{ $summary->total_lessons }}
+                                </div>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                    Lessons
                                 </span>
-                                <span class="text-[11px] text-slate-400 whitespace-nowrap flex items-center gap-1">
-                                    <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-                                    {{ $lesson->estimated_read_minutes ?? 5 }} min
+                            </div>
+                        </div>
+
+                        <!-- Availability & Status Pill -->
+                        <div class="p-2.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl flex items-center justify-between text-xs border border-slate-100 dark:border-slate-800/80">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                <span class="font-semibold text-slate-700 dark:text-slate-200">
+                                    <strong>{{ $summary->published_lessons }}</strong> Lessons Published
                                 </span>
                             </div>
 
-                            <button 
-                                type="button" 
-                                wire:click="toggleLessonStatus('{{ $lesson->id }}')"
-                                class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap flex-shrink-0 {{ $lesson->status === 'published' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100' }}"
-                                title="Click to toggle Published / Draft status">
-                                {{ $lesson->status ?? 'published' }}
-                            </button>
-                        </div>
-
-                        <!-- Main Title & Summary -->
-                        <div class="space-y-1">
-                            <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">
-                                {{ $lesson->title }}
-                            </h3>
-                            @if($lesson->subheading)
-                                <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                                    {{ $lesson->subheading }}
-                                </p>
+                            @if($summary->total_lessons - $summary->published_lessons > 0)
+                                <span class="text-[10px] text-slate-400 font-medium">
+                                    {{ $summary->total_lessons - $summary->published_lessons }} drafts
+                                </span>
                             @endif
                         </div>
 
-                        <!-- Citations -->
-                        @if($lesson->scripture_citations || $lesson->catechism_citations)
-                            <div class="py-2 px-2.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl text-[11px] text-slate-500 space-y-0.5 border border-slate-100 dark:border-slate-800/80">
-                                @if($lesson->scripture_citations)
-                                    <div><span class="font-semibold text-slate-700 dark:text-slate-300">Scripture:</span> {{ $lesson->scripture_citations }}</div>
-                                @endif
-                                @if($lesson->catechism_citations)
-                                    <div><span class="font-semibold text-slate-700 dark:text-slate-300">Catechism:</span> {{ $lesson->catechism_citations }}</div>
-                                @endif
-                            </div>
-                        @endif
-
-                        <!-- Card Action Footer -->
-                        <div class="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        <!-- Card Actions Toolbar -->
+                        <div class="flex items-center justify-end gap-1.5 flex-wrap pt-2 border-t border-slate-100 dark:border-slate-800/80">
                             <button 
                                 type="button" 
-                                wire:click="previewLesson('{{ $lesson->id }}')" 
-                                class="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-semibold rounded-xl flex items-center gap-1 transition-colors">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                <span>Preview</span>
+                                wire:click="toggleTrackLessonsStatus({{ $summary->category_id }})"
+                                class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                                title="Toggle published status for lessons in this track">
+                                {{ $summary->published_lessons > 0 ? 'Unpublish All' : 'Publish All' }}
                             </button>
                             <button 
                                 type="button" 
-                                wire:click="editLesson('{{ $lesson->id }}')"
-                                class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors">
-                                Edit
+                                wire:click="openLessonImportModalForTrack({{ $summary->category_id }})"
+                                class="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-xl flex items-center gap-1 transition-colors">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                <span>Import</span>
                             </button>
                             <button 
                                 type="button" 
-                                wire:confirm="Delete lesson '{{ $lesson->title }}'?"
-                                wire:click="deleteLesson('{{ $lesson->id }}')"
-                                class="px-3 py-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-semibold rounded-xl transition-colors">
-                                Delete
+                                wire:click="openManageTrackModal({{ $summary->category_id }})"
+                                class="px-2.5 py-1.5 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-semibold rounded-xl flex items-center gap-1 transition-colors">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                <span>Update Track</span>
+                            </button>
+                            <button 
+                                type="button" 
+                                wire:confirm="Are you sure you want to delete all {{ $summary->total_lessons }} lessons in {{ $summary->category?->name ?? 'this track' }}? This action cannot be undone."
+                                wire:click="deleteTrackLessons({{ $summary->category_id }})"
+                                class="px-2.5 py-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-semibold rounded-xl transition-colors"
+                                title="Delete all lessons in this track">
+                                Delete Lessons
+                            </button>
+                            <button 
+                                type="button" 
+                                wire:click="openCreateLessonModal"
+                                class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-xl transition-colors flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                <span>+ Add Lesson</span>
                             </button>
                         </div>
                     </div>
                 @empty
-                    <div class="p-8 text-center text-slate-400 text-xs bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl">
-                        No study lessons found. Click <strong>+ Add Lesson</strong> above to create your first diocesan micro-lesson!
+                    <div class="p-8 text-center bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                        <div class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">No formation lessons found for the selected filter.</p>
+                        <p class="text-[11px] text-slate-400">Click <strong>Import</strong> to upload CSV or JSON lessons, or click <strong>+ Add Lesson</strong> to write a lesson.</p>
                     </div>
                 @endforelse
-
-                <div class="pt-2">
-                    {{ $lessons->links() }}
-                </div>
             </div>
         </div>
     @endif
 
-    <!-- TAB 6: QUESTIONS BANK CRUD & IMPORT (Q&A) -->
+    <!-- TAB 6: QUESTIONS BANK (Q&A FORMATION TRACKS & LEVELS) -->
     @if($activeTab === 'questions')
         <div class="space-y-3 animate-fade-in">
             <!-- Search & Actions Toolbar -->
@@ -592,7 +624,7 @@
                         <input 
                             type="text" 
                             wire:model.live.debounce.300ms="searchQuery" 
-                            placeholder="Search question text or scripture..."
+                            placeholder="Filter by track or category..."
                             class="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-600 shadow-xs">
                     </div>
 
@@ -627,61 +659,106 @@
                 </div>
             </div>
 
+            <!-- Track & Level Summary Grid -->
             <div class="space-y-3">
-                @forelse($questions as $q)
-                    <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2.5 shadow-xs">
+                @forelse($trackLevelSummaries as $summary)
+                    <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 shadow-xs">
                         <div class="flex items-start justify-between gap-2">
-                            <div class="space-y-1 min-w-0">
-                                <div class="flex items-center gap-1.5 min-w-0">
-                                    <span class="px-2.5 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold truncate max-w-[200px]">
-                                        {{ $q->category?->name ?? 'Universal' }}
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="px-2.5 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold">
+                                        {{ $summary->category?->name ?? 'Formation Track' }}
                                     </span>
-                                    <span class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold whitespace-nowrap">
-                                        Diff: {{ $q->difficulty ?? 1 }}
+                                    <span class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
+                                        Level {{ $summary->level ?? 1 }}
+                                        @if($summary->level == 1) &bull; Junior
+                                        @elseif($summary->level == 2) &bull; Youth
+                                        @elseif($summary->level == 3) &bull; Advanced
+                                        @elseif($summary->level >= 4) &bull; Expert
+                                        @endif
                                     </span>
                                 </div>
-                                <h3 class="text-xs font-bold text-slate-900 dark:text-white leading-snug">{{ $q->question_text }}</h3>
+
+                                <h4 class="font-bold text-slate-900 dark:text-white text-base">
+                                    {{ $summary->category?->name ?? 'Universal Questions' }}
+                                </h4>
                             </div>
 
-                            <div class="flex items-center gap-1.5 flex-shrink-0">
-                                <button 
-                                    type="button" 
-                                    wire:click="editQuestion({{ $q->id }})"
-                                    class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg">
-                                    Edit
-                                </button>
-                                <button 
-                                    type="button" 
-                                    wire:confirm="Delete this question?"
-                                    wire:click="deleteQuestion({{ $q->id }})"
-                                    class="px-2.5 py-1 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-semibold rounded-lg">
-                                    Delete
-                                </button>
+                            <div class="text-right flex-shrink-0">
+                                <div class="text-lg font-black text-purple-700 dark:text-purple-300 font-serif">
+                                    {{ $summary->total_questions }}
+                                </div>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                    Questions
+                                </span>
                             </div>
                         </div>
 
-                        <!-- Options Preview Grid (Neutral - No Answer Highlight) -->
-                        <div class="grid grid-cols-2 gap-1.5 text-xs">
-                            @if(is_array($q->options))
-                                @foreach($q->options as $optKey => $optText)
-                                    <div class="p-2 rounded-lg border bg-slate-50 dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-normal">
-                                        <span class="font-mono font-bold text-[10px] text-slate-500 mr-0.5">{{ $optKey }}:</span> {{ $optText }}
-                                    </div>
-                                @endforeach
+                        <!-- Availability & Status Pill -->
+                        <div class="p-2.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl flex items-center justify-between text-xs border border-slate-100 dark:border-slate-800/80">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                <span class="font-semibold text-slate-700 dark:text-slate-200">
+                                    <strong>{{ $summary->active_questions }}</strong> Questions Active for Quizzes
+                                </span>
+                            </div>
+
+                            @if($summary->total_questions - $summary->active_questions > 0)
+                                <span class="text-[10px] text-slate-400 font-medium">
+                                    {{ $summary->total_questions - $summary->active_questions }} inactive
+                                </span>
                             @endif
                         </div>
 
-                        @if($q->reference_citation)
-                            <p class="text-[11px] text-slate-400 italic">Ref: {{ $q->reference_citation }}</p>
-                        @endif
+                        <!-- Card Actions Toolbar -->
+                        <div class="flex items-center justify-end gap-1.5 flex-wrap pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                            <button 
+                                type="button" 
+                                wire:click="toggleTrackQuestionsActive({{ $summary->category_id }}, {{ $summary->level }})"
+                                class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                                title="Toggle active status for questions in this track tier">
+                                {{ $summary->active_questions > 0 ? 'Deactivate All' : 'Activate All' }}
+                            </button>
+                            <button 
+                                type="button" 
+                                wire:click="openImportModalForTrack({{ $summary->category_id }})"
+                                class="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-xl flex items-center gap-1 transition-colors">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                <span>Import</span>
+                            </button>
+                            <button 
+                                type="button" 
+                                wire:click="openManageTrackModal({{ $summary->category_id }}, {{ $summary->level }})"
+                                class="px-2.5 py-1.5 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 text-xs font-semibold rounded-xl flex items-center gap-1 transition-colors">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                <span>Update Track</span>
+                            </button>
+                            <button 
+                                type="button" 
+                                wire:confirm="Are you sure you want to delete all {{ $summary->total_questions }} questions in {{ $summary->category?->name ?? 'this track' }} (Level {{ $summary->level }})? This action cannot be undone."
+                                wire:click="deleteTrackQuestions({{ $summary->category_id }}, {{ $summary->level }})"
+                                class="px-2.5 py-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-semibold rounded-xl transition-colors"
+                                title="Delete all questions in this track and level">
+                                Delete Bank
+                            </button>
+                            <button 
+                                type="button" 
+                                wire:click="openCreateQuestionModal"
+                                class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-xl transition-colors flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                <span>+ Add Q&amp;A</span>
+                            </button>
+                        </div>
                     </div>
                 @empty
-                    <div class="p-8 text-center text-slate-400 text-xs bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl">No questions found. Use the Import button to upload your CSV, Excel, or JSON questions!</div>
+                    <div class="p-8 text-center bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                        <div class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">No questions currently in the bank for the selected filter.</p>
+                        <p class="text-[11px] text-slate-400">Click <strong>Import</strong> to upload CSV, Excel, or JSON questions, or click <strong>+ Add Q&amp;A</strong> to author questions.</p>
+                    </div>
                 @endforelse
-
-                <div class="pt-2">
-                    {{ $questions->links() }}
-                </div>
             </div>
         </div>
     @endif
@@ -771,36 +848,68 @@
     <!-- TAB 7: PARISH ADMINS -->
     @if($activeTab === 'admins')
         <div class="space-y-3 animate-fade-in">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-2">
                 <input 
                     type="text" 
                     wire:model.live.debounce.300ms="searchQuery" 
-                    placeholder="Search chairperson by name or email..."
-                    class="w-2/3 px-3 py-2 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-600">
+                    placeholder="Search chairperson by name, email or parish..."
+                    class="w-2/3 px-3 py-2 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-600 shadow-xs">
 
                 <button 
                     type="button" 
-                    wire:click="$set('showAdminModal', true)"
-                    class="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm">
+                    wire:click="openCreateAdminModal"
+                    class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs whitespace-nowrap touch-press">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     <span>+ Add Chairperson</span>
                 </button>
             </div>
 
-            <div class="space-y-2">
+            <div class="space-y-2.5">
                 @forelse($admins as $admin)
-                    <div class="p-3.5 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between shadow-sm">
-                        <div class="space-y-0.5">
-                            <h3 class="text-xs font-bold text-slate-900 dark:text-white">{{ $admin->name }}</h3>
-                            <p class="text-[11px] text-slate-500">
-                                Parish: <span class="font-medium text-slate-700 dark:text-slate-300">{{ $admin->parish?->name ?? 'Unassigned' }}</span> &bull; {{ $admin->phone }} &bull; {{ $admin->email }}
+                    <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2.5 shadow-xs">
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-snug">{{ $admin->name }}</h3>
+                                <div class="flex items-center gap-1.5 flex-shrink-0">
+                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider {{ $admin->role === 'chairperson' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300' : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300' }}">
+                                        {{ $admin->role }}
+                                    </span>
+                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider {{ $admin->status === 'approved' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' : ($admin->status === 'suspended' ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300') }}">
+                                        {{ $admin->status === 'approved' ? 'Active' : ucfirst($admin->status) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Parish: <span class="font-medium text-slate-700 dark:text-slate-300">{{ $admin->parish?->name ?? 'Unassigned' }}</span>
+                                @if($admin->phone) &bull; {{ $admin->phone }} @endif
+                                &bull; {{ $admin->email }}
                             </p>
                         </div>
-                        <span class="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">
-                            {{ $admin->role }}
-                        </span>
+
+                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                            <button 
+                                type="button" 
+                                wire:click="editAdmin('{{ $admin->id }}')"
+                                class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors touch-press">
+                                Edit
+                            </button>
+                            <button 
+                                type="button" 
+                                wire:click="toggleAdminStatus('{{ $admin->id }}')"
+                                class="px-3 py-1.5 {{ $admin->status === 'approved' ? 'bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300' : 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300' }} text-xs font-semibold rounded-xl transition-colors touch-press">
+                                {{ $admin->status === 'approved' ? 'Suspend' : 'Activate' }}
+                            </button>
+                            <button 
+                                type="button" 
+                                wire:confirm="Are you sure you want to delete administrator '{{ $admin->name }}'?"
+                                wire:click="deleteAdmin('{{ $admin->id }}')"
+                                class="px-3 py-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 text-xs font-semibold rounded-xl transition-colors touch-press">
+                                Delete
+                            </button>
+                        </div>
                     </div>
                 @empty
-                    <div class="p-6 text-center text-slate-400 text-xs">No administrators found.</div>
+                    <div class="p-8 text-center text-slate-400 text-xs bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl">No administrators found.</div>
                 @endforelse
             </div>
         </div>
@@ -1141,9 +1250,32 @@
                         </div>
                     </div>
 
+                    <div class="p-3 bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50 rounded-xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-purple-900 dark:text-purple-300 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                Lesson Series &amp; Progressive Linking
+                            </span>
+                            <label class="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium cursor-pointer">
+                                <input type="checkbox" wire:model="lessonIsProgressive" class="rounded text-purple-600 focus:ring-purple-500">
+                                <span>Progressive Unlocking</span>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="col-span-2">
+                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-0.5 text-[10px]">Series Identifier / Name</label>
+                                <input type="text" wire:model="lessonSeriesIdentifier" placeholder="e.g. youth-leadership or Holy Rosary" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border rounded-lg text-xs">
+                            </div>
+                            <div>
+                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-0.5 text-[10px]">Part # in Series</label>
+                                <input type="number" wire:model="lessonSeriesOrder" min="1" max="100" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border rounded-lg text-xs">
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Lesson Title *</label>
-                        <input type="text" wire:model="lessonTitle" placeholder="e.g. The Mystery of the Holy Trinity" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
+                        <input type="text" wire:model="lessonTitle" placeholder="e.g. The Mystery of the Holy Trinity (Part 1)" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
                         @error('lessonTitle') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
                     </div>
 
@@ -1306,7 +1438,10 @@
                 <!-- File Upload Input Area -->
                 <div class="space-y-3 text-xs">
                     <div>
-                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Select File (CSV, XLSX, JSON)</label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="font-bold text-slate-700 dark:text-slate-300">Select File (CSV, XLSX, JSON)</label>
+                            <span class="text-[10px] text-slate-400 font-semibold">Max 10MB</span>
+                        </div>
                         <input 
                             type="file" 
                             wire:model="importFile"
@@ -1428,7 +1563,10 @@
 
                 <div class="space-y-3 text-xs">
                     <div>
-                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Select File (CSV, XLSX, JSON)</label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="font-bold text-slate-700 dark:text-slate-300">Select File (CSV, XLSX, JSON)</label>
+                            <span class="text-[10px] text-slate-400 font-semibold">Max 10MB</span>
+                        </div>
                         <input 
                             type="file" 
                             wire:model="lessonImportFile"
@@ -1503,44 +1641,168 @@
         </div>
     @endif
 
-    <!-- G. PARISH ADMIN MODAL -->
-    @if($showAdminModal)
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl">
-                <div class="flex items-center justify-between border-b pb-2">
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">Add Parish Chairperson</h3>
-                    <button wire:click="$set('showAdminModal', false)" class="text-slate-400 hover:text-slate-600">&times;</button>
+    <!-- F3. MANAGE & UPDATE TRACK Q&A BANK MODAL -->
+    @if($showManageTrackModal)
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-xl my-8">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 flex items-center justify-center">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Update Track Q&amp;A Bank</h3>
+                            <p class="text-[11px] text-slate-500">Edit track metadata, reassign questions, or batch toggle availability</p>
+                        </div>
+                    </div>
+                    <button wire:click="$set('showManageTrackModal', false)" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
                 </div>
+
                 <div class="space-y-3 text-xs">
                     <div>
-                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Parish</label>
-                        <select wire:model="newAdminParishId" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
-                            <option value="">Select Parish</option>
-                            @foreach($parishes as $p)
-                                <option value="{{ $p->id }}">{{ $p->name }}</option>
-                            @endforeach
-                        </select>
+                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Track / Formation Name</label>
+                        <input type="text" wire:model="manageTrackName" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white">
+                        @error('manageTrackName') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
                     </div>
+
                     <div>
-                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Full Name</label>
-                        <input type="text" wire:model="newAdminName" placeholder="e.g. John Banda" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
+                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Description</label>
+                        <textarea wire:model="manageTrackDescription" rows="2" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white"></textarea>
                     </div>
-                    <div>
-                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Phone Number</label>
-                        <input type="text" wire:model="newAdminPhone" placeholder="+260..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
+
+                    <div class="p-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2.5">
+                        <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200 block">Batch Actions for Questions in This Track @if($manageTrackLevel) (Level {{ $manageTrackLevel }}) @endif</span>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 block mb-1">Reassign Formation Level</label>
+                                <select wire:model="manageTargetLevel" class="w-full px-2.5 py-1.5 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200">
+                                    <option value="1">Level 1 - Junior</option>
+                                    <option value="2">Level 2 - Youth / Intermediate</option>
+                                    <option value="3">Level 3 - Advanced</option>
+                                    <option value="4">Level 4 - Expert</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 block mb-1">Reassign Track / Category</label>
+                                <select wire:model="manageTargetCategoryId" class="w-full px-2.5 py-1.5 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200">
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 block mb-1">Batch Active State</label>
+                            <select wire:model="manageBatchActiveAction" class="w-full px-2.5 py-1.5 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200">
+                                <option value="keep">Keep Current Status</option>
+                                <option value="activate_all">Activate All Questions in Track Tier</option>
+                                <option value="deactivate_all">Deactivate All Questions in Track Tier</option>
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Email</label>
-                        <input type="email" wire:model="newAdminEmail" placeholder="chairperson@parish.org" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
-                    </div>
-                    <div>
-                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Default Password</label>
-                        <input type="text" wire:model="newAdminPassword" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
+
+                    <!-- Danger Zone inside Modal -->
+                    <div class="p-3 bg-red-50/70 dark:bg-red-950/20 border border-red-200/70 dark:border-red-900/40 rounded-xl flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-red-700 dark:text-red-400 block text-xs">Delete Track Questions</span>
+                            <span class="text-[10px] text-red-600/80 dark:text-red-400/80">Permanently delete all questions in this bank tier.</span>
+                        </div>
+                        <button 
+                            type="button" 
+                            wire:confirm="Are you sure you want to delete all questions in this track tier? This action cannot be undone."
+                            wire:click="deleteTrackQuestions({{ $manageTrackCategoryId ?? 0 }}, {{ $manageTrackLevel }})"
+                            class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[11px] transition-colors">
+                            Delete Now
+                        </button>
                     </div>
                 </div>
-                <div class="flex items-center justify-end gap-2 pt-2 border-t">
-                    <button wire:click="$set('showAdminModal', false)" class="px-3 py-1.5 text-xs text-slate-500">Cancel</button>
-                    <button wire:click="createParishAdmin" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold">Create Chairperson</button>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                    <button wire:click="$set('showManageTrackModal', false)" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700">Cancel</button>
+                    <button wire:click="saveTrackQAManagement" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- G. PARISH ADMIN MODAL -->
+    @if($showAdminModal)
+        <div class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                        {{ $editAdminId ? 'Edit Parish Administrator' : 'Add Parish Chairperson' }}
+                    </h3>
+                    <button wire:click="$set('showAdminModal', false)" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold">&times;</button>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Assigned Parish *</label>
+                        <select wire:model="newAdminParishId" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-600">
+                            <option value="">Select Parish</option>
+                            @foreach($parishes as $p)
+                                <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->code }})</option>
+                            @endforeach
+                        </select>
+                        @error('newAdminParishId') <span class="text-[11px] text-rose-500 font-semibold mt-0.5 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Full Name *</label>
+                        <input type="text" wire:model="newAdminName" placeholder="e.g. John Banda" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-600">
+                        @error('newAdminName') <span class="text-[11px] text-rose-500 font-semibold mt-0.5 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Phone Number *</label>
+                            <input type="text" wire:model="newAdminPhone" placeholder="+26097..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-600">
+                            @error('newAdminPhone') <span class="text-[11px] text-rose-500 font-semibold mt-0.5 block">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Email Address</label>
+                            <input type="email" wire:model="newAdminEmail" placeholder="chairperson@parish.org" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-600">
+                            @error('newAdminEmail') <span class="text-[11px] text-rose-500 font-semibold mt-0.5 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Role *</label>
+                            <select wire:model="newAdminRole" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-600">
+                                <option value="chairperson">Chairperson (Parish Admin)</option>
+                                <option value="deanery_admin">Deanery Admin</option>
+                            </select>
+                            @error('newAdminRole') <span class="text-[11px] text-rose-500 font-semibold mt-0.5 block">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Account Status *</label>
+                            <select wire:model="newAdminStatus" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-600">
+                                <option value="approved">Active / Approved</option>
+                                <option value="pending">Pending Review</option>
+                                <option value="rejected">Suspended / Inactive</option>
+                            </select>
+                            @error('newAdminStatus') <span class="text-[11px] text-rose-500 font-semibold mt-0.5 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                            {{ $editAdminId ? 'New Password (Optional)' : 'Default Password *' }}
+                        </label>
+                        <input type="password" wire:model="newAdminPassword" placeholder="{{ $editAdminId ? 'Leave blank to keep unchanged' : 'Min 6 characters' }}" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-600">
+                        @error('newAdminPassword') <span class="text-[11px] text-rose-500 font-semibold mt-0.5 block">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <button wire:click="$set('showAdminModal', false)" type="button" class="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Cancel</button>
+                    <button wire:click="saveAdmin" type="button" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm touch-press">
+                        {{ $editAdminId ? 'Update Administrator' : 'Create Chairperson' }}
+                    </button>
                 </div>
             </div>
         </div>

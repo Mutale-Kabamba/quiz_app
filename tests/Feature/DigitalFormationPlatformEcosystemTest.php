@@ -70,6 +70,44 @@ class DigitalFormationPlatformEcosystemTest extends TestCase
             'ccc_reference' => 'CCC 1376',
             'scripture_reference' => '1 Corinthians 11:23-26',
         ]);
+
+        // Create test micro lesson
+        MicroLesson::create([
+            'topic_id' => $this->topic->id,
+            'title' => 'The Holy Eucharist: Real Presence',
+            'slug' => 'the-holy-eucharist-real-presence',
+            'hook_question' => 'How does the bread and wine become the Body and Blood of Christ?',
+            'content_body' => 'In the celebration of the Holy Mass, through the words of consecration spoken by the priest and the invocation of the Holy Spirit, transubstantiation occurs.',
+            'takeaways' => ['Christ is truly, really, and substantially present.', 'The Eucharist is the source and summit of the Christian life.'],
+            'read_time_minutes' => 4,
+            'xp_reward' => 40,
+            'is_published' => true,
+        ]);
+
+        // Create test rally
+        RallyPreparation::create([
+            'title' => 'Livingstone Diocesan Youth Rally 2026',
+            'slug' => 'livingstone-diocesan-youth-rally-2026',
+            'rally_date' => now()->addDays(20),
+            'description' => 'Prepare for the Diocesan Youth Rally.',
+            'target_questions_count' => 100,
+            'domain_weights' => ['scripture' => 25, 'catechism' => 30],
+            'is_active' => true,
+        ]);
+
+        // Create test challenge
+        ParishFormationChallenge::create([
+            'parish_id' => $this->parish->id,
+            'title' => 'Parish Formation Challenge',
+            'description' => 'Unite your parish youth to complete catechetical modules.',
+            'topic_id' => $this->topic->id,
+            'start_date' => now()->startOfWeek(),
+            'end_date' => now()->endOfWeek()->addDays(7),
+            'target_mastery_percentage' => 75,
+            'target_youth_count' => 10,
+            'xp_reward_pool' => 1000,
+            'status' => 'active',
+        ]);
     }
 
     public function test_micro_learning_service_completes_5_minute_formation(): void
@@ -172,5 +210,74 @@ class DigitalFormationPlatformEcosystemTest extends TestCase
         $response->assertSee("Today's Formation", false);
         $response->assertSee('Prepare for the Rally');
         $response->assertSee('Parish Formation Challenge');
+    }
+
+    public function test_sequential_lesson_linking_and_todays_formation_advancement(): void
+    {
+        $category = Category::create([
+            'name' => 'Youth Leadership',
+            'slug' => 'youth-leadership',
+            'icon' => 'sparkles',
+            'display_order' => 1,
+        ]);
+
+        $part1 = Lesson::create([
+            'category_id' => $category->id,
+            'title' => 'Catholic Leadership (Part 1)',
+            'slug' => 'catholic-leadership-part-1',
+            'subheading' => 'Servant Leadership in Christ',
+            'display_order' => 1,
+            'status' => 'published',
+            'content_sections' => ['Servant leadership begins with humility.'],
+        ]);
+
+        $part2 = Lesson::create([
+            'category_id' => $category->id,
+            'title' => 'Catholic Leadership (Part 2)',
+            'slug' => 'catholic-leadership-part-2',
+            'subheading' => 'Building Parish Youth Ministries',
+            'display_order' => 2,
+            'status' => 'published',
+            'content_sections' => ['Community building fosters discipleship.'],
+        ]);
+
+        $part3 = Lesson::create([
+            'category_id' => $category->id,
+            'title' => 'Catholic Leadership (Part 3)',
+            'slug' => 'catholic-leadership-part-3',
+            'subheading' => 'Spiritual Warfare & Perseverance',
+            'display_order' => 3,
+            'status' => 'published',
+            'content_sections' => ['Put on the armor of God.'],
+        ]);
+
+        $progressService = app(\App\Services\LearningProgressService::class);
+        $microLearningService = app(\App\Services\MicroLearningService::class);
+
+        // 1. Check getNextLesson links Part 1 -> Part 2 -> Part 3
+        $this->assertEquals($part2->id, $progressService->getNextLesson($part1)?->id);
+        $this->assertEquals($part3->id, $progressService->getNextLesson($part2)?->id);
+        $this->assertNull($progressService->getNextLesson($part3));
+
+        // 2. Mark Part 1 as completed for youth
+        $completionResult = $progressService->completeLesson($this->user, $part1);
+        $this->assertEquals($part2->id, $completionResult['next_lesson']?->id);
+
+        // 3. Verify Today's Formation dynamically advances to Part 2!
+        $todaysFormation = $microLearningService->getTodayMicroLesson($this->user);
+        $this->assertNotNull($todaysFormation);
+        $this->assertStringContainsString('Part 2', $todaysFormation->title);
+
+        // 4. Test LessonViewer rendering for Part 1 shows Continue to Next Lesson link
+        \Livewire\Livewire::actingAs($this->user)
+            ->test(\App\Livewire\LessonViewer::class, ['lesson' => $part1])
+            ->assertSee('Continue to Next Lesson')
+            ->assertSee($part2->title);
+
+        // 5. Complete Part 2 and verify Today's Formation advances to Part 3
+        $progressService->completeLesson($this->user, $part2);
+        $todaysFormationNext = $microLearningService->getTodayMicroLesson($this->user);
+        $this->assertNotNull($todaysFormationNext);
+        $this->assertStringContainsString('Part 3', $todaysFormationNext->title);
     }
 }

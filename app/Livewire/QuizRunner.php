@@ -55,17 +55,20 @@ class QuizRunner extends Component
     public function mount(?int $categoryId = null, int $level = 1, string $mode = 'ranked', ?string $challenge = null)
     {
         $this->categoryId = $categoryId;
-        $this->level = $level;
-        $this->mode = $mode;
+        $this->level = (int) request()->query('level', $level);
+        $this->mode = request()->query('mode', $mode);
         $this->challenge = request()->query('challenge', $challenge);
         $this->attemptUuid = (string) Str::uuid();
 
-        // Level-based timer limits
-        $this->timeLimit = match ($this->level) {
-            1 => 15, // Junior
-            2 => 20, // Youth
-            3 => 30, // Advanced
-            default => 15,
+        // Level / Mode based timer limits: Practice mode is 30s
+        $this->timeLimit = match ($this->mode) {
+            'practice' => 30,
+            default => match ($this->level) {
+                1 => 15, // Junior
+                2 => 20, // Youth
+                3 => 30, // Advanced
+                default => 20,
+            },
         };
         $this->timeRemaining = $this->timeLimit;
 

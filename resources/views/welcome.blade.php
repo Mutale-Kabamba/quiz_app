@@ -4,13 +4,13 @@
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-900 via-indigo-950 to-slate-900 text-white p-6 space-y-4 border border-purple-800/40 shadow-sm">
             <div class="space-y-2">
                 <span class="inline-block px-3 py-1 rounded-full bg-white/10 text-purple-200 text-[10px] font-bold uppercase tracking-wider border border-white/15">
-                    Livingstone Diocese Catholic Youth Formation
+                    Catholic Diocese of Livingstone &bull; Youth Ministry Formation App
                 </span>
                 <h1 class="text-2xl sm:text-3xl font-bold font-serif text-white leading-tight">
                     Grow in Faith, Scripture &amp; Catechism
                 </h1>
                 <p class="text-xs text-purple-200/80 leading-relaxed max-w-sm">
-                    Interactive catechetical learning for Catholic youth across all parishes of Livingstone Diocese.
+                    Interactive catechetical learning for Catholic youth across all parishes of Catholic Diocese of Livingstone.
                 </p>
             </div>
 

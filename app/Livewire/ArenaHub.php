@@ -54,6 +54,16 @@ class ArenaHub extends Component
     public ?array $importResults = null;
     public bool $isImporting = false;
 
+    // Super Admin: Manage & Update Track Q&A Bank
+    public bool $showManageTrackModal = false;
+    public ?int $manageTrackCategoryId = null;
+    public ?int $manageTrackLevel = null;
+    public string $manageTrackName = '';
+    public string $manageTrackDescription = '';
+    public ?int $manageTargetLevel = null;
+    public ?int $manageTargetCategoryId = null;
+    public string $manageBatchActiveAction = 'keep'; // 'keep', 'activate_all', 'deactivate_all'
+
     // Super Admin: Create & Edit Competition
     public bool $showDiocesanCompModal = false;
     public ?string $editCompId = null;
@@ -264,6 +274,153 @@ class ArenaHub extends Component
         $this->successMessage = "Question status updated to " . ($newStatus ? 'Active' : 'Inactive');
     }
 
+    public function openManageTrackModal(int $categoryId, ?int $level = null)
+    {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin()) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $category = Category::findOrFail($categoryId);
+        $this->manageTrackCategoryId = $categoryId;
+        $this->manageTrackLevel = $level;
+        $this->manageTrackName = $category->name;
+        $this->manageTrackDescription = $category->description ?? '';
+        $this->manageTargetLevel = $level;
+        $this->manageTargetCategoryId = $categoryId;
+        $this->manageBatchActiveAction = 'keep';
+        $this->showManageTrackModal = true;
+    }
+
+    public function saveTrackQAManagement()
+    {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin()) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $this->validate([
+            'manageTrackCategoryId' => 'required|exists:categories,id',
+            'manageTrackName' => 'required|string|min:3|max:120',
+            'manageTrackDescription' => 'nullable|string|max:500',
+            'manageTargetLevel' => 'nullable|integer|in:1,2,3,4',
+            'manageTargetCategoryId' => 'nullable|exists:categories,id',
+            'manageBatchActiveAction' => 'required|in:keep,activate_all,deactivate_all',
+        ]);
+
+        $category = Category::findOrFail($this->manageTrackCategoryId);
+        $oldName = $category->name;
+        $newSlug = \Illuminate\Support\Str::slug($this->manageTrackName);
+
+        // 1. Update Category metadata
+        $category->update([
+            'name' => $this->manageTrackName,
+            'slug' => $newSlug,
+            'description' => $this->manageTrackDescription ?: null,
+        ]);
+
+        // Sync with TaxonomyTrack if present
+        $taxTrack = TaxonomyTrack::where('slug', $category->slug)->orWhere('name', $oldName)->first();
+        if ($taxTrack) {
+            $taxTrack->update([
+                'name' => $this->manageTrackName,
+                'slug' => $newSlug,
+                'description' => $this->manageTrackDescription ?: null,
+            ]);
+        }
+
+        // 2. Batch update questions matching category (and level if selected)
+        $questionQuery = Question::where('category_id', $this->manageTrackCategoryId);
+        if ($this->manageTrackLevel !== null) {
+            $questionQuery->where('level', $this->manageTrackLevel);
+        }
+
+        $updates = [];
+        if ($this->manageTargetCategoryId && $this->manageTargetCategoryId !== $this->manageTrackCategoryId) {
+            $updates['category_id'] = $this->manageTargetCategoryId;
+        }
+        if ($this->manageTargetLevel !== null && $this->manageTargetLevel !== $this->manageTrackLevel) {
+            $updates['level'] = $this->manageTargetLevel;
+        }
+        if ($this->manageBatchActiveAction === 'activate_all') {
+            $updates['is_active'] = true;
+        } elseif ($this->manageBatchActiveAction === 'deactivate_all') {
+            $updates['is_active'] = false;
+        }
+
+        $affectedCount = 0;
+        if (!empty($updates)) {
+            $affectedCount = $questionQuery->update($updates);
+        }
+
+        app(AuditLogService::class)->log(
+            'track_qa_bank_updated',
+            $category,
+            ['old_name' => $oldName, 'level' => $this->manageTrackLevel],
+            ['name' => $this->manageTrackName, 'updates' => $updates, 'affected_questions' => $affectedCount],
+            $user
+        );
+
+        $this->reset(['showManageTrackModal', 'manageTrackCategoryId', 'manageTrackLevel', 'manageTrackName', 'manageTrackDescription', 'manageTargetLevel', 'manageTargetCategoryId']);
+        $this->successMessage = "Track Q&A Bank '{$category->name}' successfully updated! ({$affectedCount} questions updated).";
+    }
+
+    public function toggleTrackQuestionsActive(int $categoryId, ?int $level = null)
+    {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin()) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $query = Question::where('category_id', $categoryId);
+        if ($level !== null) {
+            $query->where('level', $level);
+        }
+
+        $totalCount = (clone $query)->count();
+        if ($totalCount === 0) {
+            $this->errorMessage = "No questions found in this track tier.";
+            return;
+        }
+
+        $activeCount = (clone $query)->where('is_active', true)->count();
+        $newActiveState = ($activeCount === $totalCount) ? false : true;
+        $query->update(['is_active' => $newActiveState]);
+
+        $stateText = $newActiveState ? 'activated' : 'deactivated';
+        $this->successMessage = "All {$totalCount} questions in this track tier have been {$stateText}.";
+    }
+
+    public function deleteTrackQuestions(int $categoryId, ?int $level = null)
+    {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin()) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $category = Category::find($categoryId);
+        $catName = $category?->name ?? 'Track';
+
+        $query = Question::where('category_id', $categoryId);
+        if ($level !== null) {
+            $query->where('level', $level);
+        }
+
+        $count = $query->count();
+        $query->delete();
+
+        app(AuditLogService::class)->log(
+            'track_questions_deleted',
+            $category ?? $user,
+            ['category_id' => $categoryId, 'level' => $level, 'count' => $count],
+            null,
+            $user
+        );
+
+        $levelText = $level !== null ? " (Level {$level})" : '';
+        $this->successMessage = "Successfully deleted {$count} questions from track '{$catName}'{$levelText}.";
+    }
+
     // =========================================================================
     // 2. DYNAMIC CONTENT IMPORT
     // =========================================================================
@@ -294,7 +451,7 @@ class ArenaHub extends Component
         }
 
         $this->validate([
-            'importFile' => 'required|file|max:10240',
+            'importFile' => 'required|file|max:15360',
             'importDuplicateStrategy' => 'required|in:skip,overwrite,error',
         ]);
 

@@ -17,40 +17,17 @@ class ParishCommunityChallengeService
     ) {}
 
     /**
-     * Get or create active formation challenges for the parish.
+     * Get active formation challenges for the parish.
      */
     public function getActiveChallengesForParish(Parish $parish): Collection
     {
-        $challenges = ParishFormationChallenge::with(['parish', 'challengerParish', 'topic'])
+        return ParishFormationChallenge::with(['parish', 'challengerParish', 'topic'])
             ->where(function ($q) use ($parish) {
                 $q->where('parish_id', $parish->id)
                   ->orWhere('challenger_parish_id', $parish->id);
             })
             ->where('status', 'active')
             ->get();
-
-        if ($challenges->isEmpty()) {
-            $otherParish = Parish::where('id', '!=', $parish->id)->first();
-            $topic = TaxonomyTopic::first();
-
-            $challenge = ParishFormationChallenge::create([
-                'parish_id' => $parish->id,
-                'challenger_parish_id' => $otherParish?->id,
-                'title' => 'Inter-Parish Formation Challenge',
-                'description' => 'Unite your parish youth to complete catechetical modules and achieve 75% average topic mastery.',
-                'topic_id' => $topic?->id,
-                'start_date' => Carbon::today()->startOfWeek(),
-                'end_date' => Carbon::today()->endOfWeek()->addDays(7),
-                'target_mastery_percentage' => 75,
-                'target_youth_count' => 15,
-                'xp_reward_pool' => 1200,
-                'status' => 'active',
-            ]);
-
-            $challenges = collect([$challenge]);
-        }
-
-        return $challenges;
     }
 
     /**

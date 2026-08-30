@@ -72,11 +72,14 @@ class DioceseDashboard extends Component
     public int $trackDisplayOrder = 1;
 
     // 4. Parish Admin Form
+    public ?string $editAdminId = null;
     public string $newAdminName = '';
     public string $newAdminPhone = '';
     public string $newAdminEmail = '';
-    public string $newAdminPassword = 'password';
+    public string $newAdminPassword = '';
     public ?int $newAdminParishId = null;
+    public string $newAdminRole = 'chairperson';
+    public string $newAdminStatus = 'approved';
 
     // 5. Question Bank Form (Create & Edit)
     public ?string $editQuestionId = null;
@@ -95,6 +98,10 @@ class DioceseDashboard extends Component
     // 6. Study Lesson Form (Create & Edit & In-App Preview)
     public ?string $editLessonId = null;
     public ?int $lessonCategoryId = null;
+    public string $lessonSeriesIdentifier = '';
+    public string $lessonSeriesTitle = '';
+    public int $lessonSeriesOrder = 1;
+    public bool $lessonIsProgressive = true;
     public string $lessonTitle = '';
     public string $lessonSubheading = '';
     public string $lessonContent = '';
@@ -132,6 +139,16 @@ class DioceseDashboard extends Component
     public string $lessonImportDuplicateStrategy = 'skip'; // 'skip', 'overwrite'
     public ?array $lessonImportResults = null;
     public bool $isLessonImporting = false;
+
+    // 10. Track Q&A Bank Management Properties
+    public bool $showManageTrackModal = false;
+    public ?int $manageTrackCategoryId = null;
+    public ?int $manageTrackLevel = null;
+    public string $manageTrackName = '';
+    public string $manageTrackDescription = '';
+    public ?int $manageTargetLevel = null;
+    public ?int $manageTargetCategoryId = null;
+    public string $manageBatchActiveAction = 'keep'; // 'keep', 'activate_all', 'deactivate_all'
 
     // Report Summary Data
     public ?array $reportSummary = null;
@@ -450,40 +467,155 @@ class DioceseDashboard extends Component
     }
 
     // =========================================================================
-    // 4. PARISH ADMIN CRUD
+    // 4. PARISH ADMIN / CHAIRPERSON CRUD
     // =========================================================================
+    public function openCreateAdminModal()
+    {
+        $this->reset(['editAdminId', 'newAdminName', 'newAdminPhone', 'newAdminEmail', 'newAdminPassword', 'newAdminParishId']);
+        $this->newAdminRole = 'chairperson';
+        $this->newAdminStatus = 'approved';
+        $this->newAdminPassword = '';
+        $this->showAdminModal = true;
+    }
+
+    public function editAdmin(string $id)
+    {
+        $admin = User::findOrFail($id);
+        $this->editAdminId = $admin->id;
+        $this->newAdminName = $admin->name;
+        $this->newAdminPhone = $admin->phone ?? '';
+        $this->newAdminEmail = $admin->email ?? '';
+        $this->newAdminParishId = $admin->parish_id;
+        $this->newAdminRole = $admin->role ?? 'chairperson';
+        $this->newAdminStatus = $admin->status ?? 'approved';
+        $this->newAdminPassword = '';
+        $this->showAdminModal = true;
+    }
+
+    public function saveAdmin()
+    {
+        $rules = [
+            'newAdminName' => 'required|string|min:3|max:100',
+            'newAdminPhone' => 'required|string|min:6|max:20|unique:users,phone' . ($this->editAdminId ? ",{$this->editAdminId}" : ''),
+            'newAdminEmail' => 'nullable|email|max:100|unique:users,email' . ($this->editAdminId ? ",{$this->editAdminId}" : ''),
+            'newAdminParishId' => 'required|exists:parishes,id',
+            'newAdminRole' => 'required|in:chairperson,deanery_admin',
+            'newAdminStatus' => 'required|in:approved,pending,rejected',
+        ];
+
+        if (!$this->editAdminId) {
+            $rules['newAdminPassword'] = 'required|string|min:6';
+        } else {
+            $rules['newAdminPassword'] = 'nullable|string|min:6';
+        }
+
+        $this->validate($rules);
+
+        if ($this->editAdminId) {
+            $admin = User::findOrFail($this->editAdminId);
+            $updateData = [
+                'parish_id' => $this->newAdminParishId,
+                'name' => $this->newAdminName,
+                'phone' => $this->newAdminPhone,
+                'email' => $this->newAdminEmail ?: null,
+                'role' => $this->newAdminRole,
+                'status' => $this->newAdminStatus,
+            ];
+
+            if (!empty($this->newAdminPassword)) {
+                $updateData['password'] = Hash::make($this->newAdminPassword);
+            }
+
+            $admin->update($updateData);
+
+            app(AuditLogService::class)->log(
+                'parish_admin_updated',
+                $admin,
+                null,
+                ['name' => $this->newAdminName, 'parish_id' => $this->newAdminParishId, 'role' => $this->newAdminRole],
+                Auth::user()
+            );
+
+            $this->successMessage = "Administrator '{$admin->name}' updated successfully!";
+        } else {
+            $admin = User::create([
+                'parish_id' => $this->newAdminParishId,
+                'name' => $this->newAdminName,
+                'phone' => $this->newAdminPhone,
+                'email' => $this->newAdminEmail ?: null,
+                'password' => Hash::make($this->newAdminPassword ?: 'password'),
+                'role' => $this->newAdminRole,
+                'status' => $this->newAdminStatus,
+                'approved_by' => Auth::id(),
+                'approved_at' => now(),
+            ]);
+
+            app(AuditLogService::class)->log(
+                'parish_admin_created',
+                $admin,
+                null,
+                ['name' => $this->newAdminName, 'parish_id' => $this->newAdminParishId],
+                Auth::user()
+            );
+
+            $this->successMessage = "Parish Chairperson '{$admin->name}' successfully created and assigned.";
+        }
+
+        $this->reset(['editAdminId', 'newAdminName', 'newAdminPhone', 'newAdminEmail', 'newAdminPassword', 'newAdminParishId', 'showAdminModal']);
+    }
+
     public function createParishAdmin()
     {
-        $this->validate([
-            'newAdminName' => 'required|string|min:3|max:100',
-            'newAdminPhone' => 'required|string|min:8|max:20|unique:users,phone',
-            'newAdminEmail' => 'nullable|email|max:100|unique:users,email',
-            'newAdminPassword' => 'required|string|min:6',
-            'newAdminParishId' => 'required|exists:parishes,id',
-        ]);
+        $this->saveAdmin();
+    }
 
-        $admin = User::create([
-            'parish_id' => $this->newAdminParishId,
-            'name' => $this->newAdminName,
-            'phone' => $this->newAdminPhone,
-            'email' => $this->newAdminEmail ?: null,
-            'password' => Hash::make($this->newAdminPassword),
-            'role' => 'chairperson',
-            'status' => 'approved',
-            'approved_by' => Auth::id(),
-            'approved_at' => now(),
-        ]);
+    public function deleteAdmin(string $id)
+    {
+        $admin = User::findOrFail($id);
+
+        if ($admin->id === Auth::id()) {
+            $this->errorMessage = "You cannot delete your own super admin account.";
+            return;
+        }
+
+        if ($admin->isSuperAdmin()) {
+            $this->errorMessage = "Cannot delete super administrator accounts from this view.";
+            return;
+        }
 
         app(AuditLogService::class)->log(
-            'parish_admin_created',
+            'parish_admin_deleted',
             $admin,
+            ['name' => $admin->name, 'email' => $admin->email],
             null,
-            ['name' => $this->newAdminName, 'parish_id' => $this->newAdminParishId],
             Auth::user()
         );
 
-        $this->reset(['newAdminName', 'newAdminPhone', 'newAdminEmail', 'newAdminPassword', 'newAdminParishId', 'showAdminModal']);
-        $this->successMessage = "Parish Chairperson '{$admin->name}' successfully created and assigned.";
+        $admin->delete();
+        $this->successMessage = "Administrator '{$admin->name}' deleted successfully.";
+    }
+
+    public function toggleAdminStatus(string $id)
+    {
+        $admin = User::findOrFail($id);
+        if ($admin->id === Auth::id()) {
+            $this->errorMessage = "You cannot suspend your own account.";
+            return;
+        }
+
+        $newStatus = $admin->status === 'approved' ? 'rejected' : 'approved';
+        $admin->update(['status' => $newStatus]);
+
+        app(AuditLogService::class)->log(
+            'parish_admin_status_toggled',
+            $admin,
+            ['status' => $admin->status],
+            ['status' => $newStatus],
+            Auth::user()
+        );
+
+        $statusLabel = $newStatus === 'approved' ? 'Active' : 'Suspended';
+        $this->successMessage = "Administrator '{$admin->name}' status changed to {$statusLabel}.";
     }
 
     // =========================================================================
@@ -575,6 +707,134 @@ class DioceseDashboard extends Component
         $this->successMessage = 'Question deleted from bank.';
     }
 
+    public function openManageTrackModal(int $categoryId, ?int $level = null)
+    {
+        $category = Category::findOrFail($categoryId);
+        $this->manageTrackCategoryId = $categoryId;
+        $this->manageTrackLevel = $level;
+        $this->manageTrackName = $category->name;
+        $this->manageTrackDescription = $category->description ?? '';
+        $this->manageTargetLevel = $level;
+        $this->manageTargetCategoryId = $categoryId;
+        $this->manageBatchActiveAction = 'keep';
+        $this->showManageTrackModal = true;
+    }
+
+    public function saveTrackQAManagement()
+    {
+        $this->validate([
+            'manageTrackCategoryId' => 'required|exists:categories,id',
+            'manageTrackName' => 'required|string|min:3|max:120',
+            'manageTrackDescription' => 'nullable|string|max:500',
+            'manageTargetLevel' => 'nullable|integer|in:1,2,3,4',
+            'manageTargetCategoryId' => 'nullable|exists:categories,id',
+            'manageBatchActiveAction' => 'required|in:keep,activate_all,deactivate_all',
+        ]);
+
+        $category = Category::findOrFail($this->manageTrackCategoryId);
+        $oldName = $category->name;
+        $newSlug = Str::slug($this->manageTrackName);
+
+        // 1. Update Category metadata
+        $category->update([
+            'name' => $this->manageTrackName,
+            'slug' => $newSlug,
+            'description' => $this->manageTrackDescription ?: null,
+        ]);
+
+        // Sync with TaxonomyTrack if present
+        $taxTrack = TaxonomyTrack::where('slug', $category->slug)->orWhere('name', $oldName)->first();
+        if ($taxTrack) {
+            $taxTrack->update([
+                'name' => $this->manageTrackName,
+                'slug' => $newSlug,
+                'description' => $this->manageTrackDescription ?: null,
+            ]);
+        }
+
+        // 2. Batch update questions matching category (and level if selected)
+        $questionQuery = Question::where('category_id', $this->manageTrackCategoryId);
+        if ($this->manageTrackLevel !== null) {
+            $questionQuery->where('level', $this->manageTrackLevel);
+        }
+
+        $updates = [];
+        if ($this->manageTargetCategoryId && $this->manageTargetCategoryId !== $this->manageTrackCategoryId) {
+            $updates['category_id'] = $this->manageTargetCategoryId;
+        }
+        if ($this->manageTargetLevel !== null && $this->manageTargetLevel !== $this->manageTrackLevel) {
+            $updates['level'] = $this->manageTargetLevel;
+        }
+        if ($this->manageBatchActiveAction === 'activate_all') {
+            $updates['is_active'] = true;
+        } elseif ($this->manageBatchActiveAction === 'deactivate_all') {
+            $updates['is_active'] = false;
+        }
+
+        $affectedCount = 0;
+        if (!empty($updates)) {
+            $affectedCount = $questionQuery->update($updates);
+        }
+
+        app(AuditLogService::class)->log(
+            'track_qa_bank_updated',
+            $category,
+            ['old_name' => $oldName, 'level' => $this->manageTrackLevel],
+            ['name' => $this->manageTrackName, 'updates' => $updates, 'affected_questions' => $affectedCount],
+            Auth::user()
+        );
+
+        $this->reset(['showManageTrackModal', 'manageTrackCategoryId', 'manageTrackLevel', 'manageTrackName', 'manageTrackDescription', 'manageTargetLevel', 'manageTargetCategoryId']);
+        $this->successMessage = "Track Q&A Bank '{$category->name}' successfully updated! ({$affectedCount} questions updated).";
+    }
+
+    public function toggleTrackQuestionsActive(int $categoryId, ?int $level = null)
+    {
+        $query = Question::where('category_id', $categoryId);
+        if ($level !== null) {
+            $query->where('level', $level);
+        }
+
+        $totalCount = (clone $query)->count();
+        if ($totalCount === 0) {
+            $this->errorMessage = "No questions found in this track tier.";
+            return;
+        }
+
+        $activeCount = (clone $query)->where('is_active', true)->count();
+        // If all are active, deactivate all; otherwise activate all
+        $newActiveState = ($activeCount === $totalCount) ? false : true;
+        $query->update(['is_active' => $newActiveState]);
+
+        $stateText = $newActiveState ? 'activated' : 'deactivated';
+        $this->successMessage = "All {$totalCount} questions in this track tier have been {$stateText}.";
+    }
+
+    public function deleteTrackQuestions(int $categoryId, ?int $level = null)
+    {
+        $category = Category::find($categoryId);
+        $catName = $category?->name ?? 'Track';
+
+        $query = Question::where('category_id', $categoryId);
+        if ($level !== null) {
+            $query->where('level', $level);
+        }
+
+        $count = $query->count();
+        $query->delete();
+
+        app(AuditLogService::class)->log(
+            'track_questions_deleted',
+            $category ?? Auth::user(),
+            ['category_id' => $categoryId, 'level' => $level, 'count' => $count],
+            null,
+            Auth::user()
+        );
+
+        $levelText = $level !== null ? " (Level {$level})" : '';
+        $this->successMessage = "Successfully deleted {$count} questions from track '{$catName}'{$levelText}.";
+    }
+
     // =========================================================================
     // 6. STUDY LESSONS CRUD
     // =========================================================================
@@ -583,6 +843,8 @@ class DioceseDashboard extends Component
         $this->reset([
             'editLessonId',
             'lessonCategoryId',
+            'lessonSeriesIdentifier',
+            'lessonSeriesTitle',
             'lessonTitle',
             'lessonSubheading',
             'lessonContent',
@@ -590,6 +852,8 @@ class DioceseDashboard extends Component
             'lessonScripture',
             'lessonCatechism',
         ]);
+        $this->lessonSeriesOrder = 1;
+        $this->lessonIsProgressive = true;
         $this->lessonReadMinutes = 5;
         $this->lessonDifficulty = 1;
         $this->lessonStatus = 'published';
@@ -601,6 +865,10 @@ class DioceseDashboard extends Component
         $lesson = Lesson::findOrFail($id);
         $this->editLessonId = $lesson->id;
         $this->lessonCategoryId = $lesson->category_id;
+        $this->lessonSeriesIdentifier = $lesson->series_identifier ?? '';
+        $this->lessonSeriesTitle = $lesson->series_title ?? '';
+        $this->lessonSeriesOrder = $lesson->series_order ?? 1;
+        $this->lessonIsProgressive = (bool) ($lesson->is_progressive ?? true);
         $this->lessonTitle = $lesson->title;
         $this->lessonSubheading = $lesson->subheading ?? '';
         
@@ -641,6 +909,10 @@ class DioceseDashboard extends Component
             'lessonCategoryId' => 'required|exists:categories,id',
             'lessonTitle' => 'required|string|min:3|max:150',
             'lessonSubheading' => 'nullable|string|max:255',
+            'lessonSeriesIdentifier' => 'nullable|string|max:100',
+            'lessonSeriesTitle' => 'nullable|string|max:150',
+            'lessonSeriesOrder' => 'nullable|integer|min:1|max:100',
+            'lessonIsProgressive' => 'boolean',
             'lessonContent' => 'required|string|min:10',
             'lessonReadMinutes' => 'required|integer|min:1|max:60',
             'lessonDifficulty' => 'required|in:1,2,3',
@@ -661,10 +933,22 @@ class DioceseDashboard extends Component
 
         $slug = Str::slug($this->lessonTitle);
 
+        // Resolve series identifier
+        $seriesId = !empty(trim($this->lessonSeriesIdentifier)) 
+            ? Str::slug($this->lessonSeriesIdentifier) 
+            : (!empty(trim($this->lessonSeriesTitle)) ? Str::slug($this->lessonSeriesTitle) : null);
+        $seriesTitle = !empty(trim($this->lessonSeriesTitle)) 
+            ? trim($this->lessonSeriesTitle) 
+            : (!empty($seriesId) ? ucwords(str_replace('-', ' ', $seriesId)) : null);
+
         if ($this->editLessonId) {
             $lesson = Lesson::findOrFail($this->editLessonId);
             $lesson->update([
                 'category_id' => $this->lessonCategoryId,
+                'series_identifier' => $seriesId,
+                'series_title' => $seriesTitle,
+                'series_order' => $seriesId ? ($this->lessonSeriesOrder ?: 1) : null,
+                'is_progressive' => $this->lessonIsProgressive,
                 'title' => $this->lessonTitle,
                 'slug' => $slug,
                 'subheading' => $this->lessonSubheading ?: null,
@@ -681,6 +965,10 @@ class DioceseDashboard extends Component
         } else {
             $lesson = Lesson::create([
                 'category_id' => $this->lessonCategoryId,
+                'series_identifier' => $seriesId,
+                'series_title' => $seriesTitle,
+                'series_order' => $seriesId ? ($this->lessonSeriesOrder ?: 1) : null,
+                'is_progressive' => $this->lessonIsProgressive,
                 'title' => $this->lessonTitle,
                 'slug' => $slug . '-' . Str::random(4),
                 'subheading' => $this->lessonSubheading ?: null,
@@ -700,6 +988,8 @@ class DioceseDashboard extends Component
         $this->reset([
             'editLessonId',
             'lessonCategoryId',
+            'lessonSeriesIdentifier',
+            'lessonSeriesTitle',
             'lessonTitle',
             'lessonSubheading',
             'lessonContent',
@@ -708,6 +998,8 @@ class DioceseDashboard extends Component
             'lessonCatechism',
             'showLessonModal',
         ]);
+        $this->lessonSeriesOrder = 1;
+        $this->lessonIsProgressive = true;
     }
 
     public function toggleLessonStatus(string $id)
@@ -735,6 +1027,51 @@ class DioceseDashboard extends Component
     {
         $this->previewLessonId = null;
         $this->showLessonPreviewModal = false;
+    }
+
+    public function openLessonImportModalForTrack(?int $categoryId = null)
+    {
+        $this->reset(['lessonImportFile', 'lessonImportResults', 'isLessonImporting']);
+        $this->lessonImportCategoryId = $categoryId;
+        $this->lessonImportDuplicateStrategy = 'skip';
+        $this->showLessonImportModal = true;
+    }
+
+    public function toggleTrackLessonsStatus(int $categoryId)
+    {
+        $query = Lesson::where('category_id', $categoryId);
+        $total = (clone $query)->count();
+        if ($total === 0) {
+            $this->errorMessage = "No lessons found in this track.";
+            return;
+        }
+
+        $publishedCount = (clone $query)->where('status', 'published')->count();
+        $newStatus = ($publishedCount === $total) ? 'draft' : 'published';
+        $query->update(['status' => $newStatus]);
+
+        $statusText = $newStatus === 'published' ? 'published' : 'moved to draft';
+        $this->successMessage = "All {$total} lessons in this track have been {$statusText}.";
+    }
+
+    public function deleteTrackLessons(int $categoryId)
+    {
+        $category = Category::find($categoryId);
+        $catName = $category?->name ?? 'Track';
+
+        $query = Lesson::where('category_id', $categoryId);
+        $count = $query->count();
+        $query->delete();
+
+        app(AuditLogService::class)->log(
+            'track_lessons_deleted',
+            $category ?? Auth::user(),
+            ['category_id' => $categoryId, 'count' => $count],
+            null,
+            Auth::user()
+        );
+
+        $this->successMessage = "Successfully deleted {$count} lessons from track '{$catName}'.";
     }
 
     // =========================================================================
@@ -836,6 +1173,15 @@ class DioceseDashboard extends Component
     public function openImportModal()
     {
         $this->reset(['importFile', 'importResults', 'isImporting']);
+        $this->importTrackId = null;
+        $this->importDuplicateStrategy = 'skip';
+        $this->showImportModal = true;
+    }
+
+    public function openImportModalForTrack(?int $trackId = null)
+    {
+        $this->reset(['importFile', 'importResults', 'isImporting']);
+        $this->importTrackId = $trackId;
         $this->importDuplicateStrategy = 'skip';
         $this->showImportModal = true;
     }
@@ -843,7 +1189,7 @@ class DioceseDashboard extends Component
     public function processDynamicImport()
     {
         $this->validate([
-            'importFile' => 'required',
+            'importFile' => 'required|file|max:15360',
             'importDuplicateStrategy' => 'required|in:skip,overwrite',
         ]);
 
@@ -918,7 +1264,7 @@ class DioceseDashboard extends Component
     public function processLessonImport()
     {
         $this->validate([
-            'lessonImportFile' => 'required',
+            'lessonImportFile' => 'required|file|max:15360',
             'lessonImportDuplicateStrategy' => 'required|in:skip,overwrite',
         ]);
 
@@ -1070,13 +1416,20 @@ class DioceseDashboard extends Component
             ->orderBy('display_order')
             ->get();
 
-        // 5. Study Lessons List
-        $lessons = Lesson::with('category')
+        // 5. Study Lessons Track Summaries
+        $trackLessonSummaries = Lesson::query()
+            ->select('category_id', \Illuminate\Support\Facades\DB::raw('count(*) as total_lessons'), \Illuminate\Support\Facades\DB::raw('sum(case when status = "published" then 1 else 0 end) as published_lessons'))
             ->when($this->selectedCategoryFilter, fn($q) => $q->where('category_id', $this->selectedCategoryFilter))
-            ->when($this->searchQuery && $this->activeTab === 'lessons', fn($q) => $q->where('title', 'like', "%{$this->searchQuery}%")->orWhere('subheading', 'like', "%{$this->searchQuery}%"))
-            ->orderBy('display_order')
-            ->latest()
-            ->paginate(15);
+            ->when($this->searchQuery && $this->activeTab === 'lessons', function ($q) {
+                $q->whereHas('category', fn($c) => $c->where('name', 'like', "%{$this->searchQuery}%"));
+            })
+            ->groupBy('category_id')
+            ->with('category')
+            ->orderBy('category_id')
+            ->get();
+
+        $totalLessonsCount = Lesson::count();
+        $totalPublishedLessonsCount = Lesson::where('status', 'published')->count();
 
         // 6. Parish Admins List
         $admins = User::whereIn('role', ['chairperson', 'deanery_admin'])
@@ -1099,12 +1452,21 @@ class DioceseDashboard extends Component
             ->latest()
             ->get();
 
-        // 9. Questions Bank (Q&A)
-        $questions = Question::with('category')
+        // 9. Questions Bank (Q&A) Track Summaries
+        $trackLevelSummaries = Question::query()
+            ->select('category_id', 'level', \Illuminate\Support\Facades\DB::raw('count(*) as total_questions'), \Illuminate\Support\Facades\DB::raw('sum(case when is_active = 1 then 1 else 0 end) as active_questions'))
             ->when($this->selectedCategoryFilter, fn($q) => $q->where('category_id', $this->selectedCategoryFilter))
-            ->when($this->searchQuery && $this->activeTab === 'questions', fn($q) => $q->where('question_text', 'like', "%{$this->searchQuery}%"))
-            ->latest()
-            ->paginate(20);
+            ->when($this->searchQuery && $this->activeTab === 'questions', function ($q) {
+                $q->whereHas('category', fn($c) => $c->where('name', 'like', "%{$this->searchQuery}%"));
+            })
+            ->groupBy('category_id', 'level')
+            ->with('category')
+            ->orderBy('category_id')
+            ->orderBy('level')
+            ->get();
+
+        $totalQuestionsCount = Question::count();
+        $totalActiveQuestionsCount = Question::where('is_active', true)->count();
 
         $categories = Category::withCount(['lessons', 'questions'])->get();
 
@@ -1126,11 +1488,15 @@ class DioceseDashboard extends Component
             'deaneries' => $deaneries,
             'parishes' => $parishes,
             'tracks' => $tracks,
-            'lessons' => $lessons,
+            'trackLessonSummaries' => $trackLessonSummaries,
+            'totalLessonsCount' => $totalLessonsCount,
+            'totalPublishedLessonsCount' => $totalPublishedLessonsCount,
             'admins' => $admins,
             'youths' => $youths,
             'pendingTransfers' => $pendingTransfers,
-            'questions' => $questions,
+            'trackLevelSummaries' => $trackLevelSummaries,
+            'totalQuestionsCount' => $totalQuestionsCount,
+            'totalActiveQuestionsCount' => $totalActiveQuestionsCount,
             'categories' => $categories,
             'competitions' => $competitions,
             'auditLogs' => $auditLogs,

@@ -1,21 +1,64 @@
 <div class="max-w-xl mx-auto p-4 sm:p-6" 
      x-data="{ 
-        timeLeft: @entangle('timeRemaining'), 
+        timeLeft: @entangle('timeRemaining').live, 
+        isSubmitted: @entangle('isAnswerSubmitted').live,
+        isFinished: @entangle('quizFinished').live,
+        timeLimit: {{ $timeLimit }},
         timer: null,
+        stopTimer() {
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+        },
         startTimer() {
-            clearInterval(this.timer);
+            this.stopTimer();
+            if (this.isSubmitted || this.isFinished) {
+                return;
+            }
             this.timer = setInterval(() => {
-                if (this.timeLeft > 0 && !@json($isAnswerSubmitted) && !@json($quizFinished)) {
+                if (this.isSubmitted || this.isFinished) {
+                    this.stopTimer();
+                    return;
+                }
+                if (this.timeLeft > 0) {
                     this.timeLeft--;
-                } else if (this.timeLeft === 0 && !@json($isAnswerSubmitted)) {
-                    clearInterval(this.timer);
-                    $wire.submitAnswer(null);
+                    if (this.timeLeft === 0) {
+                        this.stopTimer();
+                        $wire.submitAnswer(null);
+                    }
+                } else {
+                    this.stopTimer();
                 }
             }, 1000);
+        },
+        selectAnswer(key) {
+            if (this.isSubmitted || this.isFinished) return;
+            this.stopTimer();
+            $wire.submitAnswer(key);
         }
      }" 
-     x-init="startTimer()"
-     @reset-timer.window="timeLeft = $event.detail.time; startTimer()">
+     x-init="
+        startTimer();
+        $watch('isSubmitted', value => {
+            if (value) {
+                stopTimer();
+            }
+        });
+        $watch('isFinished', value => {
+            if (value) {
+                stopTimer();
+            }
+        });
+     "
+     x-on:destroy="stopTimer()"
+     @reset-timer.window="
+        stopTimer();
+        timeLeft = $event.detail.time || timeLimit;
+        $nextTick(() => {
+            startTimer();
+        });
+     ">
 
     @if(!$quizFinished && count($questions) > 0)
         <!-- Quiz Header / Status -->
@@ -65,7 +108,7 @@
 
                     <button 
                         type="button"
-                        wire:click="submitAnswer('{{ $key }}')" 
+                        @click="selectAnswer('{{ $key }}')" 
                         @disabled($isAnswerSubmitted)
                         class="{{ $buttonClass }}">
                         <span class="flex items-center gap-3">
