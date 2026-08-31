@@ -51,19 +51,32 @@ Artisan::command('app:import-curriculum', function () {
         $totalSuccess = 0;
         $totalDuplicates = 0;
         $totalFailed = 0;
+        $sampleErrors = [];
 
         foreach (array_chunk($questionRows, $chunkSize) as $chunk) {
             $qResult = $importService->importQuestions($chunk, null, 'skip');
             $totalSuccess += $qResult['successful'];
             $totalDuplicates += $qResult['duplicates_skipped'];
             $totalFailed += $qResult['failed'];
+            if (!empty($qResult['errors']) && count($sampleErrors) < 10) {
+                $sampleErrors = array_merge($sampleErrors, $qResult['errors']);
+            }
             $bar->advance(count($chunk));
         }
 
         $bar->finish();
         $this->newLine(2);
         $this->info("✓ Questions processed: {$totalQuestions} (Success: {$totalSuccess}, Skipped/Duplicate: {$totalDuplicates}, Failed: {$totalFailed})");
+
+        if ($totalFailed > 0 && !empty($sampleErrors)) {
+            $this->newLine();
+            $this->warn("⚠ Sample errors (first " . count($sampleErrors) . "):");
+            foreach (array_slice($sampleErrors, 0, 10) as $err) {
+                $this->error("  → {$err}");
+            }
+        }
     } else {
+        $this->warn('File public/imports/all_questions.json not found.');
     }
 })->purpose('Import all lessons and questions from public/imports');
 
