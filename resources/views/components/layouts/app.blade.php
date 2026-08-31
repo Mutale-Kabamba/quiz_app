@@ -152,6 +152,7 @@
 <body class="h-full font-sans bg-[#F8FAFC] dark:bg-[#0B0F19] text-slate-900 dark:text-slate-100 flex flex-col justify-between antialiased selection:bg-purple-500 selection:text-white"
       x-data="{ 
           darkMode: localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches),
+          currentTheme: localStorage.getItem('theme') || 'system',
           profileMenuOpen: false,
           toggleDarkMode() {
               this.darkMode = !this.darkMode;
@@ -161,6 +162,29 @@
               } else {
                   document.documentElement.classList.remove('dark');
                   localStorage.setItem('theme', 'light');
+              }
+              this.currentTheme = localStorage.getItem('theme') || 'system';
+          },
+          setTheme(mode) {
+              this.currentTheme = mode;
+              if (mode === 'dark') {
+                  document.documentElement.classList.add('dark');
+                  localStorage.setItem('theme', 'dark');
+                  this.darkMode = true;
+              } else if (mode === 'light') {
+                  document.documentElement.classList.remove('dark');
+                  localStorage.setItem('theme', 'light');
+                  this.darkMode = false;
+              } else {
+                  localStorage.removeItem('theme');
+                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  if (prefersDark) {
+                      document.documentElement.classList.add('dark');
+                      this.darkMode = true;
+                  } else {
+                      document.documentElement.classList.remove('dark');
+                      this.darkMode = false;
+                  }
               }
           }
       }"
