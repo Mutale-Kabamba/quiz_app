@@ -5,16 +5,22 @@ namespace App\Livewire;
 use App\Models\AuditLog;
 use App\Models\Category;
 use App\Models\DailyChallenge;
+use App\Models\Deanery;
 use App\Models\DiocesanCompetition;
 use App\Models\Parish;
 use App\Models\ParishCompetition;
 use App\Models\Question;
 use App\Models\QuizAttempt;
 use App\Models\TaxonomyTrack;
+use App\Models\User;
 use App\Models\UserChallengeParticipation;
 use App\Services\AuditLogService;
 use App\Services\DynamicContentImportService;
+use App\Models\RallyParticipant;
+use App\Models\RallyJoinRequest;
+use App\Services\RallyAccessService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Response;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -31,6 +37,15 @@ class ArenaHub extends Component
     public string $searchQuestion = '';
     public ?int $selectedCategoryFilter = null;
     public ?int $selectedLevelFilter = null;
+
+    // Youth Rally Join & Code Entry
+    public bool $showJoinModal = false;
+    public ?string $selectedRallyForJoinId = null;
+    public string $joinRequestMessage = '';
+
+    // Youth Rally Review Modal (Score & Answers)
+    public bool $showRallyReviewModal = false;
+    public ?array $rallyReviewData = null;
 
     // Super Admin: Question CRUD (Q&A)
     public bool $showQuestionModal = false;
@@ -69,11 +84,20 @@ class ArenaHub extends Component
     public ?string $editCompId = null;
     public string $newCompTitle = '';
     public string $newCompDescription = '';
+    public string $newCompScopeType = 'diocese'; // diocese, deanery, parish, custom
+    public string $newCompClassification = 'diocesan';
+    public ?int $newCompDeaneryId = null;
+    public ?int $newCompParishId = null;
     public ?int $newCompCategoryId = null;
     public string $newCompStartTime = '';
     public string $newCompEndTime = '';
-    public int $newCompTimeLimit = 300;
+    public ?string $newCompRegistrationOpenAt = null;
+    public ?string $newCompRegistrationCloseAt = null;
+    public bool $newCompJoinRequestsEnabled = true;
+    public int $newCompTimeLimit = 15;
     public int $newCompQuestionCount = 15;
+    public array $selectedCustomUserIds = [];
+    public string $youthSearchTerm = '';
 
     // Parish Admin: Host Quiz
     public bool $showParishQuizModal = false;
@@ -483,26 +507,64 @@ class ArenaHub extends Component
     // =========================================================================
     public function openCreateCompetitionModal()
     {
-        $this->reset(['editCompId', 'newCompTitle', 'newCompDescription', 'newCompCategoryId']);
-        $this->newCompTimeLimit = 300;
+        $this->reset([
+            'editCompId',
+            'newCompTitle',
+            'newCompDescription',
+            'newCompScopeType',
+            'newCompClassification',
+            'newCompDeaneryId',
+            'newCompParishId',
+            'newCompCategoryId',
+            'selectedCustomUserIds',
+            'youthSearchTerm',
+        ]);
+        $this->newCompTimeLimit = 15;
         $this->newCompQuestionCount = 15;
+        $this->newCompScopeType = 'diocese';
+        $this->newCompClassification = 'diocesan';
+        $this->newCompJoinRequestsEnabled = true;
         $this->newCompStartTime = now()->addDays(1)->format('Y-m-d\TH:i');
         $this->newCompEndTime = now()->addDays(7)->format('Y-m-d\TH:i');
+        $this->newCompRegistrationOpenAt = now()->format('Y-m-d\TH:i');
+        $this->newCompRegistrationCloseAt = now()->addDays(1)->format('Y-m-d\TH:i');
         $this->showDiocesanCompModal = true;
     }
 
     public function editCompetition(string $id)
     {
-        $comp = DiocesanCompetition::findOrFail($id);
+        $comp = DiocesanCompetition::with('participants')->findOrFail($id);
         $this->editCompId = $comp->id;
         $this->newCompTitle = $comp->title;
         $this->newCompDescription = $comp->description ?? '';
+        $this->newCompScopeType = $comp->scope_type ?? 'diocese';
+        $this->newCompClassification = $comp->competition_type ?? 'diocesan';
+        $this->newCompDeaneryId = $comp->deanery_id;
+        $this->newCompParishId = $comp->parish_id;
         $this->newCompCategoryId = $comp->category_id;
-        $this->newCompTimeLimit = $comp->time_limit_seconds;
+        $this->newCompTimeLimit = $comp->time_limit_seconds ?: 15;
         $this->newCompQuestionCount = $comp->question_count ?? 15;
         $this->newCompStartTime = $comp->start_time ? $comp->start_time->format('Y-m-d\TH:i') : now()->format('Y-m-d\TH:i');
         $this->newCompEndTime = $comp->end_time ? $comp->end_time->format('Y-m-d\TH:i') : now()->addDays(7)->format('Y-m-d\TH:i');
+        $this->newCompRegistrationOpenAt = $comp->registration_open_at ? $comp->registration_open_at->format('Y-m-d\TH:i') : null;
+        $this->newCompRegistrationCloseAt = $comp->registration_close_at ? $comp->registration_close_at->format('Y-m-d\TH:i') : null;
+        $this->newCompJoinRequestsEnabled = (bool) ($comp->join_requests_enabled ?? true);
+        $this->selectedCustomUserIds = $comp->participants->pluck('user_id')->map(fn($uid) => (string) $uid)->toArray();
         $this->showDiocesanCompModal = true;
+    }
+
+    public function toggleCustomUser(string $userId)
+    {
+        if (in_array($userId, $this->selectedCustomUserIds)) {
+            $this->selectedCustomUserIds = array_values(array_diff($this->selectedCustomUserIds, [$userId]));
+        } else {
+            $this->selectedCustomUserIds[] = $userId;
+        }
+    }
+
+    public function removeCustomUser(string $userId)
+    {
+        $this->selectedCustomUserIds = array_values(array_diff($this->selectedCustomUserIds, [$userId]));
     }
 
     public function saveCompetition()
@@ -512,64 +574,137 @@ class ArenaHub extends Component
             abort(403, 'Unauthorized.');
         }
 
-        $this->validate([
+        $validationRules = [
             'newCompTitle' => 'required|string|min:4|max:120',
             'newCompDescription' => 'required|string|min:10',
+            'newCompScopeType' => 'required|in:diocese,deanery,parish,custom',
+            'newCompClassification' => 'required|in:diocesan,deanery,parish,youth_rally',
             'newCompStartTime' => 'required|date',
             'newCompEndTime' => 'required|date|after:newCompStartTime',
-            'newCompTimeLimit' => 'required|integer|min:30|max:3600',
+            'newCompTimeLimit' => 'required|integer|min:5|max:3600',
             'newCompQuestionCount' => 'required|integer|min:5|max:100',
-        ]);
+        ];
+
+        if ($this->newCompScopeType === 'deanery') {
+            $validationRules['newCompDeaneryId'] = 'required|exists:deaneries,id';
+        } elseif ($this->newCompScopeType === 'parish') {
+            $validationRules['newCompParishId'] = 'required|exists:parishes,id';
+        }
+
+        $this->validate($validationRules);
+
+        $accessService = app(RallyAccessService::class);
 
         if ($this->editCompId) {
             $competition = DiocesanCompetition::findOrFail($this->editCompId);
             $competition->update([
                 'title' => $this->newCompTitle,
                 'description' => $this->newCompDescription,
+                'scope_type' => $this->newCompScopeType,
+                'competition_type' => $this->newCompClassification,
+                'deanery_id' => $this->newCompScopeType === 'deanery' ? $this->newCompDeaneryId : null,
+                'parish_id' => $this->newCompScopeType === 'parish' ? $this->newCompParishId : null,
                 'category_id' => $this->newCompCategoryId ?: Category::first()?->id,
                 'time_limit_seconds' => $this->newCompTimeLimit,
                 'question_count' => $this->newCompQuestionCount,
                 'start_time' => $this->newCompStartTime,
                 'end_time' => $this->newCompEndTime,
+                'registration_open_at' => $this->newCompRegistrationOpenAt ?: null,
+                'registration_close_at' => $this->newCompRegistrationCloseAt ?: null,
+                'join_requests_enabled' => $this->newCompJoinRequestsEnabled,
             ]);
+
+            // If custom rally, synchronize custom participants
+            if ($this->newCompScopeType === 'custom') {
+                foreach ($this->selectedCustomUserIds as $customUserId) {
+                    $youthUser = User::find($customUserId);
+                    if ($youthUser) {
+                        $accessService->addCustomParticipant($competition, $youthUser, $user);
+                    }
+                }
+            }
 
             app(AuditLogService::class)->log(
                 'diocesan_competition_updated',
                 $competition,
                 null,
-                ['title' => $this->newCompTitle],
+                ['title' => $this->newCompTitle, 'scope' => $this->newCompScopeType],
                 $user
             );
 
-            $this->successMessage = "Diocesan Rally '{$competition->title}' updated successfully!";
+            $this->successMessage = "Rally '{$competition->title}' updated successfully!";
         } else {
+            $pin = 'LV-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 5));
+
             $competition = DiocesanCompetition::create([
                 'created_by' => $user->id,
                 'title' => $this->newCompTitle,
                 'description' => $this->newCompDescription,
-                'competition_type' => 'diocesan',
+                'scope_type' => $this->newCompScopeType,
+                'competition_type' => $this->newCompClassification,
+                'deanery_id' => $this->newCompScopeType === 'deanery' ? $this->newCompDeaneryId : null,
+                'parish_id' => $this->newCompScopeType === 'parish' ? $this->newCompParishId : null,
                 'category_id' => $this->newCompCategoryId ?: Category::first()?->id,
-                'rally_pin' => (string) random_int(100000, 999999),
+                'rally_pin' => $pin,
                 'level' => 2,
                 'time_limit_seconds' => $this->newCompTimeLimit,
                 'question_count' => $this->newCompQuestionCount,
                 'status' => 'active',
                 'start_time' => $this->newCompStartTime,
                 'end_time' => $this->newCompEndTime,
+                'registration_open_at' => $this->newCompRegistrationOpenAt ?: null,
+                'registration_close_at' => $this->newCompRegistrationCloseAt ?: null,
+                'join_requests_enabled' => $this->newCompJoinRequestsEnabled,
+                'is_public' => true,
             ]);
+
+            // If custom rally, add each selected youth
+            if ($this->newCompScopeType === 'custom') {
+                foreach ($this->selectedCustomUserIds as $customUserId) {
+                    $youthUser = User::find($customUserId);
+                    if ($youthUser) {
+                        $accessService->addCustomParticipant($competition, $youthUser, $user);
+                    }
+                }
+            }
 
             app(AuditLogService::class)->log(
                 'diocesan_competition_created',
                 $competition,
                 null,
-                ['title' => $this->newCompTitle],
+                ['title' => $this->newCompTitle, 'scope' => $this->newCompScopeType, 'pin' => $pin],
                 $user
             );
 
-            $this->successMessage = "Diocesan Rally '{$competition->title}' (PIN: {$competition->rally_pin}) scheduled successfully!";
+            $this->successMessage = "Rally '{$competition->title}' (Scope: " . strtoupper($competition->scope_type) . ") scheduled successfully!";
         }
 
-        $this->reset(['editCompId', 'newCompTitle', 'newCompDescription', 'showDiocesanCompModal']);
+        $this->reset([
+            'editCompId',
+            'newCompTitle',
+            'newCompDescription',
+            'newCompScopeType',
+            'newCompClassification',
+            'newCompDeaneryId',
+            'newCompParishId',
+            'selectedCustomUserIds',
+            'youthSearchTerm',
+            'showDiocesanCompModal',
+        ]);
+    }
+
+    public function toggleCompetitionStatus(string $id)
+    {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin()) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $comp = DiocesanCompetition::findOrFail($id);
+        $newStatus = $comp->status === 'active' ? 'concluded' : 'active';
+        $comp->update(['status' => $newStatus]);
+
+        $this->successMessage = "Rally '{$comp->title}' is now {$newStatus}.";
     }
 
     public function deleteCompetition(string $id)
@@ -591,20 +726,6 @@ class ArenaHub extends Component
         );
 
         $this->successMessage = 'Diocesan rally deleted.';
-    }
-
-    public function toggleCompetitionStatus(string $id)
-    {
-        $user = Auth::user();
-        if (!$user->isSuperAdmin()) {
-            abort(403, 'Unauthorized.');
-        }
-
-        $comp = DiocesanCompetition::findOrFail($id);
-        $newStatus = $comp->status === 'active' ? 'concluded' : 'active';
-        $comp->update(['status' => $newStatus]);
-
-        $this->successMessage = "Rally status changed to '{$newStatus}'.";
     }
 
     public function createParishQuiz()
@@ -664,6 +785,116 @@ class ArenaHub extends Component
         $this->showImportModal = true;
     }
 
+    public function enterRallyWithPin()
+    {
+        $this->reset(['errorMessage', 'successMessage']);
+        $code = strtoupper(trim($this->rallyPin));
+        if (empty($code)) {
+            $this->errorMessage = 'Please enter your Rally Entry PIN or personal Access Code.';
+            return;
+        }
+
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->to('/login');
+        }
+
+        // Rate Limiting: max 5 code entry attempts per 5 minutes per user
+        $rateLimitKey = 'rally-entry:' . $user->id;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            $seconds = RateLimiter::availableIn($rateLimitKey);
+            $this->errorMessage = "Too many access attempts. Please wait {$seconds} seconds before trying again.";
+            return;
+        }
+
+        // Find candidate rally by shared PIN or custom participant access code
+        $rally = DiocesanCompetition::whereRaw('UPPER(rally_pin) = ?', [$code])->first();
+        if (!$rally) {
+            // Check if it matches a personal access code for custom rallies
+            $participant = RallyParticipant::where('access_code', $code)->first();
+            if ($participant) {
+                $rally = $participant->rally;
+            }
+        }
+
+        if (!$rally) {
+            RateLimiter::hit($rateLimitKey, 300);
+            $this->errorMessage = 'Invalid Rally PIN or access code. Please check and try again.';
+            return;
+        }
+
+        // Run authoritative server-side security & eligibility validation
+        $accessService = app(RallyAccessService::class);
+        $result = $accessService->validateRallyAccess($rally, $user, $code);
+
+        if (!$result['allowed']) {
+            RateLimiter::hit($rateLimitKey, 300);
+            $this->errorMessage = $result['message'];
+            return;
+        }
+
+        RateLimiter::clear($rateLimitKey);
+        return redirect()->route('quiz.runner', [
+            'competition' => $rally->id,
+            'code' => $code,
+        ]);
+    }
+
+    public function openJoinRequestModal(string $rallyId)
+    {
+        $this->selectedRallyForJoinId = $rallyId;
+        $this->joinRequestMessage = '';
+        $this->showJoinModal = true;
+    }
+
+    public function submitJoinRequest()
+    {
+        $this->reset(['errorMessage', 'successMessage']);
+        $user = Auth::user();
+        if (!$user || !$this->selectedRallyForJoinId) {
+            return;
+        }
+
+        $rally = DiocesanCompetition::findOrFail($this->selectedRallyForJoinId);
+        $accessService = app(RallyAccessService::class);
+
+        $request = $accessService->submitJoinRequest($rally, $user, $this->joinRequestMessage);
+
+        $this->reset(['showJoinModal', 'selectedRallyForJoinId', 'joinRequestMessage']);
+        $this->successMessage = "Your join request for '{$rally->title}' has been submitted to the diocesan coordinators.";
+    }
+
+    public function openRallyReview(string $participantId)
+    {
+        $participant = RallyParticipant::with(['rally.category', 'user'])->findOrFail($participantId);
+        if ($participant->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
+            abort(403);
+        }
+
+        $attemptId = $participant->metadata['quiz_attempt_id'] ?? null;
+        $attempt = null;
+        if ($attemptId) {
+            $attempt = QuizAttempt::with(['answers.question.category'])->find($attemptId);
+        }
+        if (!$attempt) {
+            $attempt = QuizAttempt::with(['answers.question.category'])
+                ->where('user_id', $participant->user_id)
+                ->where('category_id', $participant->rally->category_id ?? 1)
+                ->latest()
+                ->first();
+        }
+
+        $this->rallyReviewData = [
+            'rally' => $participant->rally,
+            'participant' => $participant,
+            'attempt' => $attempt,
+            'score' => $participant->score,
+            'completed_at' => $participant->completed_at,
+            'answers' => $attempt?->answers ?? collect(),
+        ];
+        $this->showRallyReviewModal = true;
+    }
+
     public function render()
     {
         $user = Auth::user();
@@ -692,14 +923,32 @@ class ArenaHub extends Component
             $totalQuestionsCount = Question::count();
             $totalActiveQuestionsCount = Question::where('is_active', true)->count();
 
-            $diocesanCompetitions = DiocesanCompetition::with('category')
+            $diocesanCompetitions = DiocesanCompetition::with(['category', 'deanery', 'parish', 'participants.user'])
                 ->when($this->selectedCategoryFilter, fn($q) => $q->where('category_id', $this->selectedCategoryFilter))
                 ->latest()
                 ->get();
 
+            $deaneries = Deanery::orderBy('name')->get();
+            $parishes = Parish::with('deanery')->orderBy('name')->get();
+            
+            $youthQuery = User::where('role', 'youth')->with('parish.deanery');
+            if (!empty($this->youthSearchTerm)) {
+                $term = '%' . trim($this->youthSearchTerm) . '%';
+                $youthQuery->where(function ($q) use ($term) {
+                    $q->where('name', 'like', $term)
+                      ->orWhere('email', 'like', $term)
+                      ->orWhere('phone', 'like', $term)
+                      ->orWhereHas('parish', fn($pq) => $pq->where('name', 'like', $term));
+                });
+            }
+            $allYouth = $youthQuery->orderBy('name')->limit(50)->get();
+
             return view('livewire.arena-hub', [
                 'user' => $user,
                 'categories' => $categories,
+                'deaneries' => $deaneries,
+                'parishes' => $parishes,
+                'allYouth' => $allYouth,
                 'trackLevelSummaries' => $trackLevelSummaries,
                 'totalQuestionsCount' => $totalQuestionsCount,
                 'totalActiveQuestionsCount' => $totalActiveQuestionsCount,
@@ -741,6 +990,10 @@ class ArenaHub extends Component
         $rankedAttemptsCount = QuizAttempt::where('user_id', $user->id)->where('mode', 'ranked')->count();
         $practiceAttemptsCount = QuizAttempt::where('user_id', $user->id)->where('mode', 'practice')->count();
 
+        $accessService = app(RallyAccessService::class);
+        $availableRallies = $accessService->getAvailableRalliesForUser($user);
+        $myRallies = $accessService->getUserRallies($user);
+
         return view('livewire.arena-hub', [
             'user' => $user,
             'categories' => $categories,
@@ -748,6 +1001,8 @@ class ArenaHub extends Component
             'challengeCompleted' => $challengeCompleted,
             'rankedAttemptsCount' => $rankedAttemptsCount,
             'practiceAttemptsCount' => $practiceAttemptsCount,
+            'availableRallies' => $availableRallies,
+            'myRallies' => $myRallies,
         ])->layout('components.layouts.app', ['title' => 'Formation Arena • Diocese of Livingstone']);
     }
 }

@@ -184,6 +184,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(ParishTransfer::class);
     }
 
+    public function rallyParticipations(): HasMany
+    {
+        return $this->hasMany(RallyParticipant::class);
+    }
+
+    public function rallyJoinRequests(): HasMany
+    {
+        return $this->hasMany(RallyJoinRequest::class);
+    }
+
     public function latestPendingTransfer(): HasOne
     {
         return $this->hasOne(ParishTransfer::class)->where('status', 'pending')->latestOfMany();

@@ -42,29 +42,51 @@ class DiocesanCompetitionResource extends Resource
                     ->placeholder('e.g. 2026 Livingstone Diocesan Youth Bible Rally')
                     ->required(),
 
-                Select::make('competition_type')
+                Select::make('scope_type')
+                    ->label('Participation Scope')
                     ->options([
-                        'diocesan' => 'Diocesan Championship (All Deaneries & Parishes)',
-                        'deanery' => 'Deanery Level Competition',
-                        'parish' => 'Parish Rally',
-                        'youth_rally' => 'Special Youth Rally / Congress',
+                        'diocese' => 'Diocese Level (All Livingstone Diocese Youth)',
+                        'deanery' => 'Deanery Level (Restricted to Selected Deanery)',
+                        'parish' => 'Parish Level (Restricted to Selected Parish)',
+                        'custom' => 'Custom Invitational (Individual Youth Accounts with Personal Codes)',
+                    ])
+                    ->default('diocese')
+                    ->reactive()
+                    ->required(),
+
+                Select::make('competition_type')
+                    ->label('Event Classification')
+                    ->options([
+                        'diocesan' => 'Diocesan Championship',
+                        'deanery' => 'Deanery Championship',
+                        'parish' => 'Parish Tournament',
+                        'youth_rally' => 'Youth Congress / Rally',
                     ])
                     ->default('diocesan')
                     ->required(),
 
                 TextInput::make('rally_pin')
-                    ->label('Multiplayer PIN Code')
-                    ->default(fn () => (string) rand(100000, 999999))
-                    ->maxLength(10)
+                    ->label('Multiplayer PIN / Entry Code')
+                    ->default(fn () => 'LV-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 5)))
+                    ->maxLength(15)
+                    ->helperText('Shared code for open scope rallies. Custom rallies generate personal codes.')
                     ->required(),
 
                 Select::make('deanery_id')
                     ->relationship('deanery', 'name')
-                    ->label('Target Deanery (If Deanery Competition)'),
+                    ->label('Target Deanery')
+                    ->visible(fn ($get) => $get('scope_type') === 'deanery')
+                    ->required(fn ($get) => $get('scope_type') === 'deanery'),
+
+                Select::make('parish_id')
+                    ->relationship('parish', 'name')
+                    ->label('Target Parish')
+                    ->visible(fn ($get) => $get('scope_type') === 'parish')
+                    ->required(fn ($get) => $get('scope_type') === 'parish'),
 
                 Select::make('category_id')
                     ->relationship('category', 'name')
-                    ->label('Study Track / Category (Optional)'),
+                    ->label('Formation Category / Track (Optional)'),
 
                 Select::make('level')
                     ->options([
@@ -95,15 +117,22 @@ class DiocesanCompetitionResource extends Resource
                         'completed' => 'Completed',
                         'draft' => 'Draft',
                         'cancelled' => 'Cancelled',
+                        'closed' => 'Closed',
                     ])
                     ->default('scheduled')
                     ->required(),
 
                 DateTimePicker::make('start_time')
-                    ->label('Scheduled Start'),
+                    ->label('Scheduled Start Time'),
 
                 DateTimePicker::make('end_time')
-                    ->label('Scheduled End'),
+                    ->label('Scheduled End Time'),
+
+                DateTimePicker::make('registration_open_at')
+                    ->label('Registration Opens At'),
+
+                DateTimePicker::make('registration_close_at')
+                    ->label('Registration Closes At'),
 
                 Textarea::make('description')
                     ->rows(3)
@@ -119,13 +148,27 @@ class DiocesanCompetitionResource extends Resource
                     ->weight('bold')
                     ->searchable(),
 
-                TextColumn::make('competition_type')
+                TextColumn::make('scope_type')
+                    ->label('Scope')
                     ->badge()
-                    ->color('primary')
+                    ->color(fn (string $state): string => match ($state) {
+                        'diocese' => 'info',
+                        'deanery' => 'primary',
+                        'parish' => 'warning',
+                        'custom' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => strtoupper($state))
                     ->sortable(),
 
+                TextColumn::make('participants_count')
+                    ->counts('participants')
+                    ->label('Participants')
+                    ->badge()
+                    ->color('success'),
+
                 TextColumn::make('rally_pin')
-                    ->label('Rally PIN')
+                    ->label('Entry PIN')
                     ->badge()
                     ->color('warning')
                     ->copyable(),
@@ -144,11 +187,12 @@ class DiocesanCompetitionResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('competition_type')
+                SelectFilter::make('scope_type')
                     ->options([
-                        'diocesan' => 'Diocesan Championship',
+                        'diocese' => 'Diocese Level',
                         'deanery' => 'Deanery Level',
-                        'parish' => 'Parish Rally',
+                        'parish' => 'Parish Level',
+                        'custom' => 'Custom Invitational',
                     ]),
 
                 SelectFilter::make('status')
@@ -161,6 +205,38 @@ class DiocesanCompetitionResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+
+                Action::make('add_participant')
+                    ->label('Add Youth')
+                    ->icon('heroicon-o-user-plus')
+                    ->color('info')
+                    ->visible(fn (DiocesanCompetition $record) => $record->isCustomScope())
+                    ->form([
+                        Select::make('user_id')
+                            ->label('Select Youth Member')
+                            ->options(function () {
+                                return \App\Models\User::where('role', 'youth')
+                                    ->with('parish')
+                                    ->get()
+                                    ->mapWithKeys(function ($user) {
+                                        $parishName = $user->parish?->name ?? 'No Parish';
+                                        return [$user->id => "{$user->name} ({$parishName}) - {$user->email}"];
+                                    });
+                            })
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->action(function (DiocesanCompetition $record, array $data) {
+                        $user = \App\Models\User::findOrFail($data['user_id']);
+                        $service = app(\App\Services\RallyAccessService::class);
+                        $participant = $service->addCustomParticipant($record, $user, Auth::user());
+
+                        Notification::make()
+                            ->title('Participant Added')
+                            ->body("{$user->name} added with personal code: {$participant->access_code}")
+                            ->success()
+                            ->send();
+                    }),
 
                 Action::make('start_live')
                     ->label('Go Live')

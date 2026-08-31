@@ -506,57 +506,208 @@
         <!-- C. DIOCESAN COMPETITION / RALLY MODAL -->
         @if($showDiocesanCompModal)
             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-                <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl my-8">
-                    <div class="flex items-center justify-between border-b pb-2">
-                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">
-                            {{ $editCompId ? 'Edit Rally / Competition' : 'Schedule Diocesan Rally' }}
-                        </h3>
-                        <button wire:click="$set('showDiocesanCompModal', false)" class="text-slate-400 hover:text-slate-600">&times;</button>
+                <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-xl my-8">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-white">
+                                    {{ $editCompId ? 'Edit Rally / Competition' : 'Schedule Diocesan Rally' }}
+                                </h3>
+                                <p class="text-[11px] text-slate-500">Configure scope, eligibility, and youth participation rules</p>
+                            </div>
+                        </div>
+                        <button wire:click="$set('showDiocesanCompModal', false)" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
                     </div>
-                    <div class="space-y-3 text-xs">
+
+                    <div class="space-y-3.5 text-xs max-h-[75vh] overflow-y-auto pr-1">
+                        <!-- Rally Title -->
                         <div>
                             <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Rally Title *</label>
-                            <input type="text" wire:model="newCompTitle" placeholder="e.g. Diocesan Youth Bible Rally 2026" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
-                            @error('newCompTitle') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
+                            <input type="text" wire:model="newCompTitle" placeholder="e.g. 2026 Livingstone Diocesan Youth Bible Rally" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-purple-600">
+                            @error('newCompTitle') <span class="text-red-500 text-[10px] block mt-0.5">{{ $message }}</span> @enderror
                         </div>
+
+                        <!-- Scope & Classification -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Participation Scope *</label>
+                                <select wire:model.live="newCompScopeType" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-purple-600">
+                                    <option value="diocese">Diocese (All Livingstone Youth)</option>
+                                    <option value="deanery">Deanery (Specific Deanery)</option>
+                                    <option value="parish">Parish (Specific Parish)</option>
+                                    <option value="custom">Custom (Individual Personal Codes)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Event Classification *</label>
+                                <select wire:model="newCompClassification" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-purple-600">
+                                    <option value="diocesan">Diocesan Championship</option>
+                                    <option value="deanery">Deanery Championship</option>
+                                    <option value="parish">Parish Tournament</option>
+                                    <option value="youth_rally">Youth Congress / Rally</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Scope Condition: Deanery Selector -->
+                        @if($newCompScopeType === 'deanery')
+                            <div class="p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-xl space-y-1">
+                                <label class="font-bold text-purple-900 dark:text-purple-200 block">Select Target Deanery *</label>
+                                <select wire:model="newCompDeaneryId" class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-xl text-slate-900 dark:text-white">
+                                    <option value="">-- Choose Deanery --</option>
+                                    @foreach($deaneries as $deanery)
+                                        <option value="{{ $deanery->id }}">{{ $deanery->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('newCompDeaneryId') <span class="text-red-500 text-[10px] block">{{ $message }}</span> @enderror
+                            </div>
+                        @endif
+
+                        <!-- Scope Condition: Parish Selector -->
+                        @if($newCompScopeType === 'parish')
+                            <div class="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl space-y-1">
+                                <label class="font-bold text-amber-900 dark:text-amber-200 block">Select Target Parish *</label>
+                                <select wire:model="newCompParishId" class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-xl text-slate-900 dark:text-white">
+                                    <option value="">-- Choose Parish --</option>
+                                    @foreach($parishes as $parish)
+                                        <option value="{{ $parish->id }}">{{ $parish->name }} ({{ $parish->deanery?->name ?? 'Deanery' }})</option>
+                                    @endforeach
+                                </select>
+                                @error('newCompParishId') <span class="text-red-500 text-[10px] block">{{ $message }}</span> @enderror
+                            </div>
+                        @endif
+
+                        <!-- Scope Condition: Custom Youth Participants Selector -->
+                        @if($newCompScopeType === 'custom')
+                            <div class="p-3.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-bold text-slate-900 dark:text-white">
+                                        Select Youth Participants ({{ count($selectedCustomUserIds) }} selected)
+                                    </span>
+                                    <span class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">Each youth gets a personal code</span>
+                                </div>
+
+                                <!-- Selected Chips -->
+                                @if(!empty($selectedCustomUserIds))
+                                    <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl">
+                                        @foreach($selectedCustomUserIds as $uid)
+                                            @php $u = $allYouth->firstWhere('id', $uid) ?? \App\Models\User::find($uid); @endphp
+                                            @if($u)
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 rounded-lg text-[11px] font-medium text-purple-800 dark:text-purple-200">
+                                                    <span>{{ $u->name }}</span>
+                                                    <button type="button" wire:click="removeCustomUser('{{ $u->id }}')" class="text-purple-500 hover:text-purple-800 font-bold">&times;</button>
+                                                </span>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @endif
+
+                                <!-- Search Input -->
+                                <input 
+                                    type="text" 
+                                    wire:model.live.debounce.250ms="youthSearchTerm" 
+                                    placeholder="Search youth by name, email, or parish..." 
+                                    class="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs">
+
+                                <!-- Available Youth List -->
+                                <div class="max-h-36 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-[#121826]">
+                                    @forelse($allYouth as $youth)
+                                        @php $isSelected = in_array((string)$youth->id, array_map('strval', $selectedCustomUserIds)); @endphp
+                                        <div 
+                                            wire:click="toggleCustomUser('{{ $youth->id }}')"
+                                            class="p-2 flex items-center justify-between hover:bg-purple-50/50 dark:hover:bg-purple-950/20 cursor-pointer transition-colors text-[11px] {{ $isSelected ? 'bg-purple-50/70 dark:bg-purple-950/40' : '' }}">
+                                            <div>
+                                                <span class="font-bold text-slate-900 dark:text-white block">{{ $youth->name }}</span>
+                                                <span class="text-slate-400 text-[10px]">{{ $youth->parish?->name ?? 'No Parish' }} &bull; {{ $youth->email }}</span>
+                                            </div>
+                                            <input 
+                                                type="checkbox" 
+                                                {{ $isSelected ? 'checked' : '' }} 
+                                                class="rounded border-slate-300 text-purple-600 focus:ring-purple-500 pointer-events-none">
+                                        </div>
+                                    @empty
+                                        <div class="p-3 text-center text-slate-400 text-[11px]">No youth accounts found matching search.</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Description -->
                         <div>
-                            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Description / Rules *</label>
-                            <textarea wire:model="newCompDescription" rows="2" placeholder="Rules & guidelines..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl"></textarea>
-                            @error('newCompDescription') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
+                            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Description / Guidelines *</label>
+                            <textarea wire:model="newCompDescription" rows="2" placeholder="Rules, syllabus, and participant instructions..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-purple-600"></textarea>
+                            @error('newCompDescription') <span class="text-red-500 text-[10px] block">{{ $message }}</span> @enderror
                         </div>
+
+                        <!-- Category / Track -->
                         <div>
                             <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Category / Formation Track</label>
-                            <select wire:model="newCompCategoryId" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
-                                <option value="">All Categories (Mixed)</option>
+                            <select wire:model="newCompCategoryId" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white">
+                                <option value="">All Categories (Mixed Doctrine &amp; Scripture)</option>
                                 @foreach($categories as $c)
                                     <option value="{{ $c->id }}">{{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
+
+                        <!-- Rally Schedule Dates -->
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Start Date &amp; Time *</label>
-                                <input type="datetime-local" wire:model="newCompStartTime" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
+                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Rally Start Date &amp; Time *</label>
+                                <input type="datetime-local" wire:model="newCompStartTime" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white">
+                                @error('newCompStartTime') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">End Date &amp; Time *</label>
-                                <input type="datetime-local" wire:model="newCompEndTime" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
+                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Rally End Date &amp; Time *</label>
+                                <input type="datetime-local" wire:model="newCompEndTime" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white">
+                                @error('newCompEndTime') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
                             </div>
                         </div>
+
+                        <!-- Registration Window -->
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Time Limit (Seconds)</label>
-                                <input type="number" wire:model="newCompTimeLimit" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
+                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Registration Opens</label>
+                                <input type="datetime-local" wire:model="newCompRegistrationOpenAt" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white">
                             </div>
                             <div>
-                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Question Count</label>
-                                <input type="number" wire:model="newCompQuestionCount" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border rounded-xl">
+                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Registration Closes</label>
+                                <input type="datetime-local" wire:model="newCompRegistrationCloseAt" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white">
                             </div>
+                        </div>
+
+                        <!-- Timing & Question Count -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Seconds per Question</label>
+                                <input type="number" wire:model="newCompTimeLimit" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Total Question Count</label>
+                                <input type="number" wire:model="newCompQuestionCount" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white">
+                            </div>
+                        </div>
+
+                        <!-- Join Requests Toggle -->
+                        <div class="p-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-slate-800 dark:text-slate-200 block text-xs">Allow Public Join Requests</span>
+                                <span class="text-[10px] text-slate-400">Youth can request entry from the public rally catalog</span>
+                            </div>
+                            <input 
+                                type="checkbox" 
+                                wire:model="newCompJoinRequestsEnabled" 
+                                class="rounded border-slate-300 text-purple-600 focus:ring-purple-500 w-4 h-4">
                         </div>
                     </div>
-                    <div class="flex items-center justify-end gap-2 pt-2 border-t">
-                        <button wire:click="$set('showDiocesanCompModal', false)" class="px-3 py-1.5 text-xs text-slate-500">Cancel</button>
-                        <button wire:click="saveCompetition" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold">
+
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <button wire:click="$set('showDiocesanCompModal', false)" class="px-3.5 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700">Cancel</button>
+                        <button wire:click="saveCompetition" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs touch-press">
                             {{ $editCompId ? 'Save Changes' : 'Schedule Rally' }}
                         </button>
                     </div>
@@ -820,50 +971,536 @@
 
         <!-- 4. COMPETE & RALLY MODE VIEW -->
         @if($activeTab === 'compete')
-            <div class="space-y-4">
+            <div class="space-y-5">
                 <div class="space-y-1">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Competitive Play</span>
                     <h3 class="text-base font-bold font-serif text-slate-900 dark:text-white">Livingstone Diocesan Ranked Arena</h3>
+                    <p class="text-xs text-slate-500">Official Deanery, Parish &amp; Diocesan Formation Competitions</p>
                 </div>
 
-                <!-- RALLY PIN LOBBY CARD -->
+                @if($errorMessage)
+                    <div class="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-2xl text-xs text-rose-800 dark:text-rose-200 font-semibold flex items-center justify-between animate-fade-in shadow-xs">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            <span>{{ $errorMessage }}</span>
+                        </div>
+                        <button wire:click="$set('errorMessage', null)" class="text-rose-500 hover:text-rose-700 font-bold">&times;</button>
+                    </div>
+                @endif
+
+                <!-- RALLY PIN / ACCESS CODE LOBBY CARD -->
                 <div class="p-5 bg-gradient-to-br from-purple-900 via-indigo-950 to-slate-900 text-white border border-purple-800/40 rounded-2xl space-y-4 shadow-sm">
                     <div class="space-y-1">
                         <span class="px-2.5 py-0.5 rounded-full bg-white/10 text-purple-200 font-bold uppercase text-[10px] border border-white/15">
                             Live Youth Rally Lobby
                         </span>
-                        <h3 class="text-base font-bold font-serif">Enter Official Rally PIN</h3>
-                        <p class="text-xs text-purple-200/80">Input the 6-digit access PIN provided by your Parish Chairperson or Diocesan Director.</p>
+                        <h3 class="text-base font-bold font-serif">Enter Rally PIN or Access Code</h3>
+                        <p class="text-xs text-purple-200/80">Enter the public Rally PIN or your unique personal access code (e.g. LV26-K7X9-P2).</p>
                     </div>
 
                     <div class="flex gap-2">
                         <input 
                             type="text" 
                             wire:model="rallyPin" 
-                            placeholder="Enter 6-digit PIN..." 
-                            class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-sm font-mono text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400">
+                            wire:keydown.enter="enterRallyWithPin"
+                            placeholder="e.g. LV-CATH-7K29X or LV26-K7X9-P2" 
+                            class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-xs font-mono text-white placeholder-purple-300/50 focus:outline-none focus:border-purple-400 uppercase tracking-wider">
                         <button 
                             type="button" 
-                            wire:click="joinRally" 
-                            class="px-5 py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl text-xs whitespace-nowrap transition-colors touch-press shadow-sm">
-                            Join Rally
+                            wire:click="enterRallyWithPin" 
+                            class="px-5 py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl text-xs whitespace-nowrap transition-colors touch-press shadow-sm flex items-center gap-1.5">
+                            <span>Enter Rally</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                         </button>
                     </div>
                 </div>
 
-                <!-- DIOCESAN RALLY TOURNAMENT INFO -->
-                <div class="p-5 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 shadow-sm">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Upcoming Deanery Rallies</span>
-                        <span class="text-[11px] text-slate-400">Annual Tournament</span>
-                    </div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">Livingstone Diocesan Youth Rally 2026</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        Competitive ranked quizzes earn parish championship points. Top ranking youth represent their deaneries at the Diocesan Youth Rally.
-                    </p>
+                <!-- MY RALLIES -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center justify-between">
+                        <span>My Rallies &amp; Invites</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Active &bull; Upcoming &bull; Completed</span>
+                    </h4>
+
+                    @if(empty($myRallies['active']) && empty($myRallies['upcoming']) && empty($myRallies['completed']) && $myRallies['pending_requests']->isEmpty())
+                        <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl text-center text-xs text-slate-500">
+                            You have not joined any rallies yet. Explore the available rallies below!
+                        </div>
+                    @else
+                        <!-- Active Participations -->
+                        @foreach($myRallies['active'] as $item)
+                            @php $p = $item['participant']; $r = $item['rally']; @endphp
+                            <div class="p-4 bg-white dark:bg-[#121826] border-2 border-emerald-500/60 dark:border-emerald-500/40 rounded-2xl space-y-2.5 shadow-sm">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
+                                                LIVE NOW
+                                            </span>
+                                            <span class="px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase">
+                                                {{ $r->scope_type ?? 'Diocese' }}
+                                            </span>
+                                        </div>
+                                        <h5 class="font-bold text-slate-900 dark:text-white text-sm mt-1">{{ $r->title }}</h5>
+                                    </div>
+                                    <a href="/quiz/play?competition={{ $r->id }}&code={{ $p->access_code }}" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs touch-press whitespace-nowrap">
+                                        Enter &rarr;
+                                    </a>
+                                </div>
+                                @if($p->access_code)
+                                    <div class="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl flex items-center justify-between text-[11px] font-mono text-slate-700 dark:text-slate-300">
+                                        <span>Personal Code: <strong class="text-purple-600 dark:text-purple-400">{{ $p->access_code }}</strong></span>
+                                        <span class="text-[10px] text-slate-400 font-sans">Assigned to your account</span>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+
+                        <!-- Upcoming Participations -->
+                        @foreach($myRallies['upcoming'] as $item)
+                            @php $p = $item['participant']; $r = $item['rally']; @endphp
+                            <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 text-xs shadow-xs">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase">
+                                                {{ $r->scope_type ?? 'Diocese' }}
+                                            </span>
+                                            <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-semibold">
+                                                Registered
+                                            </span>
+                                        </div>
+                                        <h5 class="font-bold text-slate-900 dark:text-white text-sm mt-1">{{ $r->title }}</h5>
+                                        <p class="text-[11px] text-slate-500">Starts: {{ $r->start_time ? $r->start_time->format('d M Y, H:i') : 'TBA' }}</p>
+                                    </div>
+                                    @if($p->access_code)
+                                        <div class="text-right">
+                                            <span class="text-[10px] text-slate-400 block">Your Access Code</span>
+                                            <span class="font-mono font-bold text-purple-600 dark:text-purple-400 text-xs">{{ $p->access_code }}</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+
+                        <!-- Completed Participations -->
+                        @foreach($myRallies['completed'] as $item)
+                            @php $p = $item['participant']; $r = $item['rally']; @endphp
+                            <div class="p-4 bg-white dark:bg-[#121826] border border-indigo-200 dark:border-indigo-900/60 rounded-2xl space-y-2.5 shadow-xs">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold uppercase">
+                                                COMPLETED
+                                            </span>
+                                            <span class="px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase">
+                                                {{ $r->scope_type ?? 'Diocese' }}
+                                            </span>
+                                            <span class="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
+                                                Score: {{ $p->score }} pts
+                                            </span>
+                                        </div>
+                                        <h5 class="font-bold text-slate-900 dark:text-white text-sm mt-1">{{ $r->title }}</h5>
+                                        <p class="text-[11px] text-slate-400">
+                                            Submitted: {{ $p->completed_at ? $p->completed_at->format('d M Y, H:i') : 'Completed' }}
+                                        </p>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        wire:click="openRallyReview('{{ $p->id }}')" 
+                                        class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs touch-press whitespace-nowrap">
+                                        View Score &amp; Answers
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+
+                        <!-- Pending Join Requests -->
+                        @foreach($myRallies['pending_requests'] as $req)
+                            <div class="p-3.5 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl flex items-center justify-between text-xs">
+                                <div>
+                                    <span class="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 text-[10px] font-bold">
+                                        REQUEST PENDING REVIEW
+                                    </span>
+                                    <h5 class="font-bold text-slate-900 dark:text-white text-xs mt-1">{{ $req->rally?->title }}</h5>
+                                </div>
+                                <span class="text-[11px] text-amber-700 dark:text-amber-300 font-medium">Awaiting Approval</span>
+                            </div>
+                        @endforeach
+                    @endif
                 </div>
+
+                <!-- DISCOVER AVAILABLE RALLIES -->
+                <div class="space-y-3 pt-2">
+                    <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                        Discover Available &amp; Upcoming Deanery Rallies
+                    </h4>
+
+                    <div class="space-y-3">
+                        @forelse($availableRallies as $availRally)
+                            <div class="p-4 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2.5 shadow-xs">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="space-y-1">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase">
+                                                Scope: {{ $availRally->scope_type ?? 'Diocese' }}
+                                            </span>
+                                            @if($availRally->isLiveNow())
+                                                <span class="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
+                                                    Live
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <h5 class="font-bold text-slate-900 dark:text-white text-sm">{{ $availRally->title }}</h5>
+                                        <p class="text-[11px] text-slate-500 line-clamp-2">{{ $availRally->description }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                                    <div class="text-[11px] text-slate-500">
+                                        <span>{{ $availRally->question_count ?: 15 }} Questions &bull; {{ $availRally->time_limit_seconds ?: 15 }}s per Q</span>
+                                    </div>
+
+                                    @if($availRally->isLiveNow())
+                                        <a href="/quiz/play?competition={{ $availRally->id }}" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs touch-press">
+                                            Enter &rarr;
+                                        </a>
+                                    @elseif($availRally->join_requests_enabled)
+                                        <button 
+                                            type="button" 
+                                            wire:click="openJoinRequestModal('{{ $availRally->id }}')" 
+                                            class="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs touch-press">
+                                            Request to Join
+                                        </button>
+                                    @else
+                                        <span class="text-[11px] text-slate-400">Opens {{ $availRally->start_time ? $availRally->start_time->format('d M') : 'soon' }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <div class="p-6 bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl text-center text-xs text-slate-400">
+                                No public rallies available for your jurisdiction at this time.
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- JOIN REQUEST MODAL -->
+                @if($showJoinModal)
+                    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+                        <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-2xl">
+                            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Request Rally Entry</h4>
+                                <button wire:click="$set('showJoinModal', false)" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+                            </div>
+
+                            <div class="space-y-3 text-xs">
+                                <p class="text-slate-600 dark:text-slate-400 text-[11px]">
+                                    Submit your request to the diocesan and parish rally coordinators. Once approved, your personalized access code will be generated.
+                                </p>
+
+                                <div>
+                                    <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-[11px]">Optional Message / Notes</label>
+                                    <textarea 
+                                        wire:model="joinRequestMessage" 
+                                        rows="2" 
+                                        placeholder="e.g. St. Mary's Youth Choir representative..." 
+                                        class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-600"></textarea>
+                                </div>
+
+                                <div class="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                    <button 
+                                        type="button" 
+                                        wire:click="$set('showJoinModal', false)" 
+                                        class="w-1/2 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold">
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        wire:click="submitJoinRequest" 
+                                        class="w-1/2 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-xs">
+                                        Submit Request
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- RALLY SCORE & ANSWERS REVIEW MODAL -->
+                @if($showRallyReviewModal && $rallyReviewData)
+                    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
+                        <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl my-8">
+                            <!-- Header -->
+                            <div class="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold uppercase">
+                                            Rally Official Result
+                                        </span>
+                                        <span class="px-2.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase">
+                                            {{ $rallyReviewData['rally']->scope_type ?? 'Diocese' }} Scope
+                                        </span>
+                                    </div>
+                                    <h3 class="text-base font-bold font-serif text-slate-900 dark:text-white mt-1.5">
+                                        {{ $rallyReviewData['rally']->title }}
+                                    </h3>
+                                    <p class="text-xs text-slate-500 mt-0.5">
+                                        Completed: {{ $rallyReviewData['completed_at'] ? \Carbon\Carbon::parse($rallyReviewData['completed_at'])->format('d M Y \a\t H:i') : 'Recorded' }}
+                                    </p>
+                                </div>
+                                <button wire:click="$set('showRallyReviewModal', false)" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold p-1">&times;</button>
+                            </div>
+
+                            <!-- Score Card Summary -->
+                            <div class="grid grid-cols-3 gap-2.5 text-center">
+                                <div class="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl">
+                                    <span class="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 block">Final Score</span>
+                                    <span class="text-lg font-extrabold text-indigo-900 dark:text-indigo-100">{{ $rallyReviewData['score'] }} pts</span>
+                                </div>
+                                <div class="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl">
+                                    <span class="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Accuracy</span>
+                                    <span class="text-lg font-extrabold text-emerald-900 dark:text-emerald-100">
+                                        {{ $rallyReviewData['attempt'] ? "{$rallyReviewData['attempt']->correct_answers_count} / {$rallyReviewData['attempt']->total_questions}" : 'Submitted' }}
+                                    </span>
+                                </div>
+                                <div class="p-3 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 rounded-2xl">
+                                    <span class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">Time Taken</span>
+                                    <span class="text-lg font-extrabold text-amber-900 dark:text-amber-100">
+                                        {{ $rallyReviewData['attempt'] ? "{$rallyReviewData['attempt']->time_taken_seconds}s" : '--' }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Questions & Answers Review Breakdown -->
+                            <div class="space-y-3">
+                                <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center justify-between">
+                                    <span>Questions &amp; Formational Answers</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">1 Attempt Registered</span>
+                                </h4>
+
+                                <div class="space-y-3.5 max-h-96 overflow-y-auto pr-1">
+                                    @forelse($rallyReviewData['answers'] as $index => $answer)
+                                        @php $q = $answer->question; @endphp
+                                        @if($q)
+                                            <div class="p-4 rounded-2xl border text-xs space-y-2.5 transition-all {{ $answer->is_correct ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60' : 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/60' }}">
+                                                <!-- Question Header -->
+                                                <div class="flex items-start justify-between gap-2">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold {{ $answer->is_correct ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white' }}">
+                                                            {{ $index + 1 }}
+                                                        </span>
+                                                        <span class="font-bold text-slate-900 dark:text-white">{{ $q->category?->name ?? 'Doctrine' }}</span>
+                                                    </div>
+                                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {{ $answer->is_correct ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200' }}">
+                                                        {{ $answer->is_correct ? 'Correct' : 'Incorrect' }}
+                                                    </span>
+                                                </div>
+
+                                                <!-- Question Text -->
+                                                <p class="font-semibold text-slate-800 dark:text-slate-100 text-xs leading-relaxed">
+                                                    {{ $q->question_text }}
+                                                </p>
+
+                                                <!-- Options Breakdown -->
+                                                <div class="grid grid-cols-1 gap-1.5 pt-1">
+                                                    @foreach($q->options ?? [] as $optKey => $optVal)
+                                                        @php
+                                                            $isUserChoice = ($answer->selected_option_key === $optKey);
+                                                            $isCorrectOption = ($q->correct_option_key === $optKey);
+                                                        @endphp
+                                                        <div class="p-2 rounded-xl border flex items-center justify-between text-[11px] {{ $isCorrectOption ? 'bg-emerald-100/80 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700 font-bold text-emerald-900 dark:text-emerald-100' : ($isUserChoice ? 'bg-rose-100/80 dark:bg-rose-900/40 border-rose-300 dark:border-rose-700 line-through text-rose-900 dark:text-rose-200' : 'bg-white dark:bg-[#121826] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300') }}">
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-mono border {{ $isCorrectOption ? 'border-emerald-600 bg-emerald-600 text-white' : ($isUserChoice ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-300 text-slate-500') }}">
+                                                                    {{ $optKey }}
+                                                                </span>
+                                                                <span>{{ $optVal }}</span>
+                                                            </div>
+                                                            @if($isCorrectOption)
+                                                                <span class="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold">&check; Correct Answer</span>
+                                                            @elseif($isUserChoice)
+                                                                <span class="text-[10px] text-rose-700 dark:text-rose-300 font-bold">&times; Your Choice</span>
+                                                            @endif
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+
+                                                <!-- Scripture & Catechism References & Explanation -->
+                                                @if($q->reference_citation || $q->explanation)
+                                                    <div class="p-2.5 bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1 text-[11px]">
+                                                        @if($q->reference_citation)
+                                                            <div class="flex items-center gap-1.5 text-purple-700 dark:text-purple-300 font-semibold text-[10px]">
+                                                                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                                                                <span>Reference: {{ $q->reference_citation }}</span>
+                                                            </div>
+                                                        @endif
+                                                        @if($q->explanation)
+                                                            <p class="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                                                                {{ $q->explanation }}
+                                                            </p>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    @empty
+                                        <div class="p-4 text-center text-slate-400 text-xs">
+                                            Detailed answer history is recorded in your diocesan profile.
+                                        </div>
+                                    @endforelse
+                                </div>
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                                <button 
+                                    type="button" 
+                                    wire:click="$set('showRallyReviewModal', false)" 
+                                    class="px-5 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-xs touch-press">
+                                    Close Review
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         @endif
     @endif
 
+    <!-- RALLY SCORE & ANSWERS REVIEW MODAL (GLOBAL TO ARENA) -->
+    @if($showRallyReviewModal && $rallyReviewData)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
+            <div class="bg-white dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl my-8">
+                <!-- Header -->
+                <div class="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold uppercase">
+                                Rally Official Result
+                            </span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase">
+                                {{ $rallyReviewData['rally']->scope_type ?? 'Diocese' }} Scope
+                            </span>
+                        </div>
+                        <h3 class="text-base font-bold font-serif text-slate-900 dark:text-white mt-1.5">
+                            {{ $rallyReviewData['rally']->title }}
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Completed: {{ $rallyReviewData['completed_at'] ? \Carbon\Carbon::parse($rallyReviewData['completed_at'])->format('d M Y \a\t H:i') : 'Recorded' }}
+                        </p>
+                    </div>
+                    <button wire:click="$set('showRallyReviewModal', false)" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold p-1">&times;</button>
+                </div>
+
+                <!-- Score Card Summary -->
+                <div class="grid grid-cols-3 gap-2.5 text-center">
+                    <div class="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl">
+                        <span class="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 block">Final Score</span>
+                        <span class="text-lg font-extrabold text-indigo-900 dark:text-indigo-100">{{ $rallyReviewData['score'] }} pts</span>
+                    </div>
+                    <div class="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl">
+                        <span class="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Accuracy</span>
+                        <span class="text-lg font-extrabold text-emerald-900 dark:text-emerald-100">
+                            {{ $rallyReviewData['attempt'] ? "{$rallyReviewData['attempt']->correct_answers_count} / {$rallyReviewData['attempt']->total_questions}" : 'Submitted' }}
+                        </span>
+                    </div>
+                    <div class="p-3 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 rounded-2xl">
+                        <span class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">Time Taken</span>
+                        <span class="text-lg font-extrabold text-amber-900 dark:text-amber-100">
+                            {{ $rallyReviewData['attempt'] ? "{$rallyReviewData['attempt']->time_taken_seconds}s" : '--' }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Questions & Answers Review Breakdown -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center justify-between">
+                        <span>Questions &amp; Formational Answers</span>
+                        <span class="text-[10px] text-slate-400 font-normal">1 Attempt Registered</span>
+                    </h4>
+
+                    <div class="space-y-3.5 max-h-96 overflow-y-auto pr-1">
+                        @forelse($rallyReviewData['answers'] as $index => $answer)
+                            @php $q = $answer->question; @endphp
+                            @if($q)
+                                <div class="p-4 rounded-2xl border text-xs space-y-2.5 transition-all {{ $answer->is_correct ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60' : 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/60' }}">
+                                    <!-- Question Header -->
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold {{ $answer->is_correct ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white' }}">
+                                                {{ $index + 1 }}
+                                            </span>
+                                            <span class="font-bold text-slate-900 dark:text-white">{{ $q->category?->name ?? 'Doctrine' }}</span>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {{ $answer->is_correct ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200' }}">
+                                            {{ $answer->is_correct ? 'Correct' : 'Incorrect' }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Question Text -->
+                                    <p class="font-semibold text-slate-800 dark:text-slate-100 text-xs leading-relaxed">
+                                        {{ $q->question_text }}
+                                    </p>
+
+                                    <!-- Options Breakdown -->
+                                    <div class="grid grid-cols-1 gap-1.5 pt-1">
+                                        @foreach($q->options ?? [] as $optKey => $optVal)
+                                            @php
+                                                $isUserChoice = ($answer->selected_option_key === $optKey);
+                                                $isCorrectOption = ($q->correct_option_key === $optKey);
+                                            @endphp
+                                            <div class="p-2 rounded-xl border flex items-center justify-between text-[11px] {{ $isCorrectOption ? 'bg-emerald-100/80 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700 font-bold text-emerald-900 dark:text-emerald-100' : ($isUserChoice ? 'bg-rose-100/80 dark:bg-rose-900/40 border-rose-300 dark:border-rose-700 line-through text-rose-900 dark:text-rose-200' : 'bg-white dark:bg-[#121826] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300') }}">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-mono border {{ $isCorrectOption ? 'border-emerald-600 bg-emerald-600 text-white' : ($isUserChoice ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-300 text-slate-500') }}">
+                                                        {{ $optKey }}
+                                                    </span>
+                                                    <span>{{ $optVal }}</span>
+                                                </div>
+                                                @if($isCorrectOption)
+                                                    <span class="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold">&check; Correct Answer</span>
+                                                @elseif($isUserChoice)
+                                                    <span class="text-[10px] text-rose-700 dark:text-rose-300 font-bold">&times; Your Choice</span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+
+                                    <!-- Scripture & Catechism References & Explanation -->
+                                    @if($q->reference_citation || $q->explanation)
+                                        <div class="p-2.5 bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1 text-[11px]">
+                                            @if($q->reference_citation)
+                                                <div class="flex items-center gap-1.5 text-purple-700 dark:text-purple-300 font-semibold text-[10px]">
+                                                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                                                    <span>Reference: {{ $q->reference_citation }}</span>
+                                                </div>
+                                            @endif
+                                            @if($q->explanation)
+                                                <p class="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                                                    {{ $q->explanation }}
+                                                </p>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+                        @empty
+                            <div class="p-4 text-center text-slate-400 text-xs">
+                                Detailed answer history is recorded in your diocesan profile.
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                    <button 
+                        type="button" 
+                        wire:click="$set('showRallyReviewModal', false)" 
+                        class="px-5 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-xs touch-press">
+                        Close Review
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

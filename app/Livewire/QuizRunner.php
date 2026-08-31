@@ -23,6 +23,8 @@ class QuizRunner extends Component
     public int $level = 1;
     public string $mode = 'ranked'; // 'practice' or 'ranked'
     public ?string $challenge = null; // 'today'
+    public ?string $competitionId = null;
+    public ?string $accessCode = null;
 
     public array $questions = [];
     public array $submittedAnswers = []; // [ ['question_id' => ..., 'category_id' => ..., 'selected' => ..., 'is_correct' => ...] ]
@@ -58,7 +60,44 @@ class QuizRunner extends Component
         $this->level = (int) request()->query('level', $level);
         $this->mode = request()->query('mode', $mode);
         $this->challenge = request()->query('challenge', $challenge);
+        $this->competitionId = request()->query('competition');
+        $this->accessCode = request()->query('code');
         $this->attemptUuid = (string) Str::uuid();
+
+        // If this is a competition / rally quiz, enforce server-side access control
+        if ($this->competitionId) {
+            $rally = \App\Models\DiocesanCompetition::find($this->competitionId);
+            if (!$rally) {
+                session()->flash('error', 'Rally / Competition event not found.');
+                return redirect()->route('arena.hub');
+            }
+
+            $user = Auth::user();
+            if (!$user) {
+                return redirect()->route('login');
+            }
+
+            $validation = app(\App\Services\RallyAccessService::class)->validateRallyAccess(
+                $rally,
+                $user,
+                $this->accessCode
+            );
+
+            if (!$validation['allowed']) {
+                session()->flash('error', $validation['message']);
+                return redirect()->route('arena.hub');
+            }
+
+            // Set competition category, level, and timer
+            if ($rally->category_id) {
+                $this->categoryId = $rally->category_id;
+            }
+            $this->level = $rally->level ?? $this->level;
+            $this->timeLimit = $rally->time_limit_seconds ?: 15;
+            $this->timeRemaining = $this->timeLimit;
+            $this->loadQuestions($rally->question_count ?: 15);
+            return;
+        }
 
         // Level / Mode based timer limits: Practice mode is 30s
         $this->timeLimit = match ($this->mode) {
@@ -75,7 +114,7 @@ class QuizRunner extends Component
         $this->loadQuestions();
     }
 
-    public function loadQuestions(): void
+    public function loadQuestions(int $count = 10): void
     {
         // 1. Check if loading Daily Challenge
         if ($this->challenge === 'today') {
@@ -98,10 +137,10 @@ class QuizRunner extends Component
             $query->where('level', $this->level);
         }
 
-        $rawQuestions = $query->inRandomOrder()->limit(10)->get();
+        $rawQuestions = $query->inRandomOrder()->limit($count)->get();
 
         if ($rawQuestions->isEmpty()) {
-            $rawQuestions = Question::where('is_active', true)->inRandomOrder()->limit(10)->get();
+            $rawQuestions = Question::where('is_active', true)->inRandomOrder()->limit($count)->get();
         }
 
         $this->formatAndSetQuestions($rawQuestions);
@@ -236,7 +275,28 @@ class QuizRunner extends Component
                 }
             }
 
-            // 4. Compute XP & Update Formation Streak
+            // 4. Handle Rally / Competition Completion (1-Try Rule)
+            if ($this->competitionId) {
+                \App\Models\RallyParticipant::updateOrCreate(
+                    [
+                        'rally_id' => $this->competitionId,
+                        'user_id' => $user->id,
+                    ],
+                    [
+                        'status' => 'completed',
+                        'score' => $this->totalScore,
+                        'completed_at' => now(),
+                        'metadata' => [
+                            'quiz_attempt_id' => (string) $attempt->id,
+                            'correct_count' => $this->correctCount,
+                            'total_questions' => count($this->questions),
+                            'time_taken' => $this->totalTimeTaken,
+                        ],
+                    ]
+                );
+            }
+
+            // 5. Compute XP & Update Formation Streak
             $xpToAward = match (true) {
                 $this->challenge === 'today' => 50,
                 $this->mode === 'ranked' => (int) max(10, round($this->totalScore / 15)),

@@ -14,9 +14,12 @@ use App\Models\QuestionBankItem;
 use App\Models\QuizAttempt;
 use App\Models\TaxonomyTrack;
 use App\Models\User;
+use App\Models\RallyParticipant;
+use App\Models\RallyJoinRequest;
 use App\Services\AuditLogService;
 use App\Services\DiocesanAnalyticsService;
 use App\Services\DynamicContentImportService;
+use App\Services\RallyAccessService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -118,12 +121,20 @@ class DioceseDashboard extends Component
     public ?string $editCompetitionId = null;
     public string $newCompTitle = '';
     public string $newCompDescription = '';
+    public string $newCompScopeType = 'diocese'; // diocese, deanery, parish, custom
     public string $newCompType = 'diocesan';
+    public ?int $newCompDeaneryId = null;
+    public ?int $newCompParishId = null;
     public ?int $newCompCategoryId = null;
     public string $newCompStartTime = '';
     public string $newCompEndTime = '';
-    public int $newCompTimeLimit = 300;
+    public ?string $newCompRegistrationOpenAt = null;
+    public ?string $newCompRegistrationCloseAt = null;
+    public bool $newCompJoinRequestsEnabled = true;
+    public int $newCompTimeLimit = 15;
     public int $newCompQuestionCount = 15;
+    public array $selectedCustomUserIds = [];
+    public string $youthSearchTerm = '';
 
     // 8. Dynamic File Import State for Questions (CSV, XLSX, JSON)
     public $importFile = null;
@@ -1077,67 +1088,147 @@ class DioceseDashboard extends Component
     // =========================================================================
     // 7. RALLIES & COMPETITIONS CRUD
     // =========================================================================
+    // =========================================================================
+    // 7. RALLIES & COMPETITIONS CRUD
+    // =========================================================================
     public function openCreateCompetitionModal()
     {
-        $this->reset(['editCompetitionId', 'newCompTitle', 'newCompDescription', 'newCompType', 'newCompCategoryId', 'newCompTimeLimit', 'newCompQuestionCount']);
+        $this->reset([
+            'editCompetitionId',
+            'newCompTitle',
+            'newCompDescription',
+            'newCompScopeType',
+            'newCompType',
+            'newCompDeaneryId',
+            'newCompParishId',
+            'newCompCategoryId',
+            'selectedCustomUserIds',
+            'youthSearchTerm',
+        ]);
+        $this->newCompTimeLimit = 15;
+        $this->newCompQuestionCount = 15;
+        $this->newCompScopeType = 'diocese';
+        $this->newCompType = 'diocesan';
+        $this->newCompJoinRequestsEnabled = true;
         $this->newCompStartTime = now()->addDays(1)->format('Y-m-d\TH:i');
         $this->newCompEndTime = now()->addDays(7)->format('Y-m-d\TH:i');
+        $this->newCompRegistrationOpenAt = now()->format('Y-m-d\TH:i');
+        $this->newCompRegistrationCloseAt = now()->addDays(1)->format('Y-m-d\TH:i');
         $this->showCompetitionModal = true;
     }
 
     public function editCompetition(string $id)
     {
-        $competition = DiocesanCompetition::findOrFail($id);
+        $competition = DiocesanCompetition::with('participants')->findOrFail($id);
         $this->editCompetitionId = $competition->id;
         $this->newCompTitle = $competition->title;
         $this->newCompDescription = $competition->description ?? '';
+        $this->newCompScopeType = $competition->scope_type ?? 'diocese';
         $this->newCompType = $competition->competition_type ?? 'diocesan';
+        $this->newCompDeaneryId = $competition->deanery_id;
+        $this->newCompParishId = $competition->parish_id;
         $this->newCompCategoryId = $competition->category_id;
+        $this->newCompTimeLimit = $competition->time_limit_seconds ?: 15;
+        $this->newCompQuestionCount = $competition->question_count ?? 15;
         $this->newCompStartTime = $competition->start_time ? $competition->start_time->format('Y-m-d\TH:i') : now()->format('Y-m-d\TH:i');
         $this->newCompEndTime = $competition->end_time ? $competition->end_time->format('Y-m-d\TH:i') : now()->addDays(7)->format('Y-m-d\TH:i');
-        $this->newCompTimeLimit = $competition->time_limit_seconds ?? 300;
-        $this->newCompQuestionCount = $competition->question_count ?? 15;
+        $this->newCompRegistrationOpenAt = $competition->registration_open_at ? $competition->registration_open_at->format('Y-m-d\TH:i') : null;
+        $this->newCompRegistrationCloseAt = $competition->registration_close_at ? $competition->registration_close_at->format('Y-m-d\TH:i') : null;
+        $this->newCompJoinRequestsEnabled = (bool) ($competition->join_requests_enabled ?? true);
+        $this->selectedCustomUserIds = $competition->participants->pluck('user_id')->map(fn($uid) => (string) $uid)->toArray();
         $this->showCompetitionModal = true;
+    }
+
+    public function toggleCustomUser(string $userId)
+    {
+        if (in_array($userId, $this->selectedCustomUserIds)) {
+            $this->selectedCustomUserIds = array_values(array_diff($this->selectedCustomUserIds, [$userId]));
+        } else {
+            $this->selectedCustomUserIds[] = $userId;
+        }
+    }
+
+    public function removeCustomUser(string $userId)
+    {
+        $this->selectedCustomUserIds = array_values(array_diff($this->selectedCustomUserIds, [$userId]));
     }
 
     public function saveCompetition()
     {
-        $this->validate([
+        $validationRules = [
             'newCompTitle' => 'required|string|min:4|max:120',
             'newCompDescription' => 'required|string|min:10',
+            'newCompScopeType' => 'required|in:diocese,deanery,parish,custom',
             'newCompType' => 'required|in:diocesan,deanery,parish,youth_rally',
             'newCompStartTime' => 'required|date',
             'newCompEndTime' => 'required|date|after:newCompStartTime',
-        ]);
+            'newCompTimeLimit' => 'required|integer|min:5|max:3600',
+            'newCompQuestionCount' => 'required|integer|min:5|max:100',
+        ];
+
+        if ($this->newCompScopeType === 'deanery') {
+            $validationRules['newCompDeaneryId'] = 'required|exists:deaneries,id';
+        } elseif ($this->newCompScopeType === 'parish') {
+            $validationRules['newCompParishId'] = 'required|exists:parishes,id';
+        }
+
+        $this->validate($validationRules);
+
+        $accessService = app(RallyAccessService::class);
+        $user = Auth::user();
 
         if ($this->editCompetitionId) {
             $competition = DiocesanCompetition::findOrFail($this->editCompetitionId);
             $competition->update([
                 'title' => $this->newCompTitle,
                 'description' => $this->newCompDescription,
+                'scope_type' => $this->newCompScopeType,
                 'competition_type' => $this->newCompType,
+                'deanery_id' => $this->newCompScopeType === 'deanery' ? $this->newCompDeaneryId : null,
+                'parish_id' => $this->newCompScopeType === 'parish' ? $this->newCompParishId : null,
                 'category_id' => $this->newCompCategoryId ?: Category::first()?->id,
                 'time_limit_seconds' => $this->newCompTimeLimit,
                 'question_count' => $this->newCompQuestionCount,
                 'start_time' => $this->newCompStartTime,
                 'end_time' => $this->newCompEndTime,
+                'registration_open_at' => $this->newCompRegistrationOpenAt ?: null,
+                'registration_close_at' => $this->newCompRegistrationCloseAt ?: null,
+                'join_requests_enabled' => $this->newCompJoinRequestsEnabled,
             ]);
+
+            if ($this->newCompScopeType === 'custom') {
+                foreach ($this->selectedCustomUserIds as $customUserId) {
+                    $youthUser = User::find($customUserId);
+                    if ($youthUser) {
+                        $accessService->addCustomParticipant($competition, $youthUser, $user);
+                    }
+                }
+            }
 
             $this->successMessage = "Competition '{$competition->title}' updated successfully!";
         } else {
+            $pin = 'LV-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 5));
+
             $competition = DiocesanCompetition::create([
                 'created_by' => Auth::id(),
                 'title' => $this->newCompTitle,
                 'description' => $this->newCompDescription,
+                'scope_type' => $this->newCompScopeType,
                 'competition_type' => $this->newCompType,
+                'deanery_id' => $this->newCompScopeType === 'deanery' ? $this->newCompDeaneryId : null,
+                'parish_id' => $this->newCompScopeType === 'parish' ? $this->newCompParishId : null,
                 'category_id' => $this->newCompCategoryId ?: Category::first()?->id,
-                'rally_pin' => (string) random_int(100000, 999999),
+                'rally_pin' => $pin,
                 'level' => 2,
                 'time_limit_seconds' => $this->newCompTimeLimit,
                 'question_count' => $this->newCompQuestionCount,
                 'status' => 'active',
                 'start_time' => $this->newCompStartTime,
                 'end_time' => $this->newCompEndTime,
+                'registration_open_at' => $this->newCompRegistrationOpenAt ?: null,
+                'registration_close_at' => $this->newCompRegistrationCloseAt ?: null,
+                'join_requests_enabled' => $this->newCompJoinRequestsEnabled,
+                'is_public' => true,
                 'scoring_rules' => [
                     'base_xp_per_correct' => 15,
                     'speed_bonus' => true,
@@ -1145,10 +1236,30 @@ class DioceseDashboard extends Component
                 ],
             ]);
 
+            if ($this->newCompScopeType === 'custom') {
+                foreach ($this->selectedCustomUserIds as $customUserId) {
+                    $youthUser = User::find($customUserId);
+                    if ($youthUser) {
+                        $accessService->addCustomParticipant($competition, $youthUser, $user);
+                    }
+                }
+            }
+
             $this->successMessage = "Diocesan Competition '{$competition->title}' scheduled!";
         }
 
-        $this->reset(['editCompetitionId', 'newCompTitle', 'newCompDescription', 'showCompetitionModal']);
+        $this->reset([
+            'editCompetitionId',
+            'newCompTitle',
+            'newCompDescription',
+            'newCompScopeType',
+            'newCompType',
+            'newCompDeaneryId',
+            'newCompParishId',
+            'selectedCustomUserIds',
+            'youthSearchTerm',
+            'showCompetitionModal',
+        ]);
     }
 
     public function toggleCompetitionStatus(string $id)
@@ -1482,11 +1593,24 @@ class DioceseDashboard extends Component
             ->take(15)
             ->get();
 
+        $youthQuery = User::where('role', 'youth')->with('parish.deanery');
+        if (!empty($this->youthSearchTerm)) {
+            $term = '%' . trim($this->youthSearchTerm) . '%';
+            $youthQuery->where(function ($q) use ($term) {
+                $q->where('name', 'like', $term)
+                  ->orWhere('email', 'like', $term)
+                  ->orWhere('phone', 'like', $term)
+                  ->orWhereHas('parish', fn($pq) => $pq->where('name', 'like', $term));
+            });
+        }
+        $allYouth = $youthQuery->orderBy('name')->limit(50)->get();
+
         return view('livewire.diocese-dashboard', [
             'user' => $user,
             'kpis' => $kpis,
             'deaneries' => $deaneries,
             'parishes' => $parishes,
+            'allYouth' => $allYouth,
             'tracks' => $tracks,
             'trackLessonSummaries' => $trackLessonSummaries,
             'totalLessonsCount' => $totalLessonsCount,
