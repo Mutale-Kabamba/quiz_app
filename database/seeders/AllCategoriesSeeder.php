@@ -22,10 +22,17 @@ class AllCategoriesSeeder extends Seeder
 {
     public function run(): void
     {
-        // Disable FK checks temporarily so we can upsert with explicit IDs
-        // even if the table already has some rows in a different order.
+        // ── Step 1: Disable FK constraints ────────────────────────────────────
         DB::statement('PRAGMA foreign_keys = OFF');
 
+        // ── Step 2: Clear content tables that depend on categories ────────────
+        // Safe because questions/lessons will be re-imported via app:import-curriculum.
+        DB::table('questions')->truncate();
+        DB::table('lessons')->truncate();
+        DB::table('categories')->truncate();
+        $this->command?->info('Cleared categories, questions, and lessons tables.');
+
+        // ── Step 3: Insert all 30 categories with exact IDs ───────────────────
         $categories = [
             [
                 'id' => 1,
@@ -271,30 +278,18 @@ class AllCategoriesSeeder extends Seeder
             ],
         ];
 
-        foreach ($categories as $data) {
-            // Use upsert with explicit ID so existing records are updated, new ones inserted
-            // with the exact same primary key the JSON import files expect.
-            $existing = Category::find($data['id']);
-            if ($existing) {
-                $existing->update(array_diff_key($data, ['id' => true]));
-            } else {
-                DB::table('categories')->insert(array_merge($data, [
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]));
-            }
-        }
+        // ── Step 4: Bulk insert all categories with exact IDs ─────────────────
+        $now = now()->toDateTimeString();
+        $rows = array_map(fn($d) => array_merge($d, [
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]), $categories);
 
-        // Remove orphaned category ID 4 if it exists on live (created by old DatabaseSeeder)
-        // so it doesn't cause confusion — it has no questions or lessons.
-        $orphan = Category::find(4);
-        if ($orphan && $orphan->questions()->count() === 0 && $orphan->lessons()->count() === 0) {
-            $orphan->delete();
-            $this->command?->warn('Removed orphaned empty Category #4.');
-        }
+        DB::table('categories')->insert($rows);
 
+        // ── Step 5: Re-enable FK constraints ──────────────────────────────────
         DB::statement('PRAGMA foreign_keys = ON');
 
-        $this->command?->info('✓ All 30 categories seeded with correct IDs (1,2,3,5–31). Ready for curriculum import.');
+        $this->command?->info('✓ All 30 categories seeded with correct IDs (1,2,3,5–31). Ready for: php artisan app:import-curriculum');
     }
 }
